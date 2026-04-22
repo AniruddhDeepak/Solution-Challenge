@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { signOut } from 'firebase/auth';
+import { auth } from './firebase';
 import { 
   BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
@@ -10,7 +12,7 @@ import {
   BarChart, Bar
 } from 'recharts';
 
-export default function App() {
+export default function App({ user }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [healthStatus, setHealthStatus] = useState('Checking...');
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,12 +154,19 @@ export default function App() {
             </motion.button>
             <div className="h-10 w-px bg-gray-200"></div>
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center space-x-4 cursor-pointer bg-white p-2 rounded-2xl shadow-sm border border-gray-100 px-4">
-              <img src="https://i.pravatar.cc/150?img=47" alt="Profile" className="w-10 h-10 rounded-xl border border-gray-100" />
+              <img src={user?.photoURL || 'https://i.pravatar.cc/150?img=47'} alt="Profile" className="w-10 h-10 rounded-xl border border-gray-100" />
               <div className="hidden sm:block">
-                <p className="text-sm font-bold text-gray-800">Sarah Jenkins</p>
+                <p className="text-sm font-bold text-gray-800">{user?.displayName || 'User'}</p>
                 <p className="text-xs text-emerald-600 font-semibold">Logistics Admin</p>
               </div>
             </motion.div>
+            <motion.button
+              whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+              onClick={() => signOut(auth)}
+              className="flex items-center px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl border border-red-100 transition-colors text-sm"
+            >
+              <LogOut className="w-4 h-4 mr-2" /> Sign Out
+            </motion.button>
           </div>
         </header>
 
