@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
+import { useInventory } from './hooks/useInventory';
+import AddItemModal from './AddItemModal';
 import { 
   BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
-  ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal
+  ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -17,6 +19,9 @@ export default function App({ user }) {
   const [healthStatus, setHealthStatus] = useState('Checking...');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInventory, setSelectedInventory] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, deleteItem } = useInventory();
 
   const networkTraffic = Array.from({ length: 20 }, (_, i) => ({ 
     time: `${i}:00`, 
@@ -43,13 +48,7 @@ export default function App({ user }) {
     { id: 'system', icon: Terminal, label: 'System Terminal' }
   ];
 
-  const inventoryItems = [
-    { id: 'INV-1029', name: 'Industrial Generators', location: 'Warehouse A', status: 'In Stock', count: 45 },
-    { id: 'INV-1030', name: 'Solar Panels (Pallet)', location: 'Warehouse B', status: 'In Transit', count: 120 },
-    { id: 'INV-1031', name: 'Lithium Battery Packs', location: 'Warehouse C', status: 'Low Stock', count: 12 },
-    { id: 'INV-1032', name: 'Copper Wiring (Spool)', location: 'Warehouse A', status: 'In Stock', count: 890 },
-    { id: 'INV-1033', name: 'Microcontrollers', location: 'Warehouse D', status: 'In Stock', count: 5600 },
-  ];
+
 
   // Animation variants
   const staggerContainer = {
@@ -301,49 +300,70 @@ export default function App({ user }) {
                     <h2 className="text-4xl font-black text-gray-900 tracking-tight">Inventory Management</h2>
                     <p className="text-gray-500 font-medium mt-2">Click on any inventory item below to view detailed deploy actions.</p>
                   </div>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowModal(true)}
+                    className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all"
+                  >
                     Register New Item
                   </motion.button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                   {inventoryItems.map((item, idx) => (
-                      <motion.div 
-                        key={item.id} variants={popIn}
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        onClick={() => setSelectedInventory(item)}
-                        className={`bg-white rounded-3xl border-2 ${selectedInventory?.id === item.id ? 'border-emerald-500 shadow-[0_15px_40px_rgba(16,185,129,0.2)]' : 'border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:border-emerald-200'} p-8 cursor-pointer transition-all flex flex-col justify-between h-[250px] relative overflow-hidden group`}
-                      >
-                         <div className="flex justify-between items-start mb-4 relative z-10">
+                {inventoryLoading ? (
+                  <div className="col-span-3 flex items-center justify-center py-24">
+                    <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
+                    <span className="ml-3 text-gray-500 font-semibold">Loading inventory from Firestore...</span>
+                  </div>
+                ) : inventoryItems.length === 0 ? (
+                  <div className="col-span-3 flex flex-col items-center justify-center py-24 text-center">
+                    <Box className="w-16 h-16 text-gray-300 mb-4" />
+                    <h3 className="text-xl font-bold text-gray-400">No inventory items yet</h3>
+                    <p className="text-gray-400 mt-2">Click "Register New Item" to add your first item.</p>
+                  </div>
+                ) : inventoryItems.map((item) => (
+                   <motion.div 
+                     key={item.id} variants={popIn}
+                     whileHover={{ y: -8, scale: 1.02 }}
+                     onClick={() => setSelectedInventory(item)}
+                     className={`bg-white rounded-3xl border-2 ${selectedInventory?.id === item.id ? 'border-emerald-500 shadow-[0_15px_40px_rgba(16,185,129,0.2)]' : 'border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:border-emerald-200'} p-8 cursor-pointer transition-all flex flex-col justify-between h-[250px] relative overflow-hidden group`}
+                   >
+                      <div className="flex justify-between items-start mb-4 relative z-10">
+                         <div>
+                            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
+                               <Box className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 leading-tight">{item.name}</h3>
+                         </div>
+                         <div className="flex flex-col items-end gap-2">
+                           <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
+                              item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
+                              item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
+                              'bg-amber-100 text-amber-700'
+                           }`}>
+                              {item.status}
+                           </span>
+                           <button
+                             onClick={(e) => { e.stopPropagation(); deleteItem(item.id); if(selectedInventory?.id === item.id) setSelectedInventory(null); }}
+                             className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors"
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </button>
+                         </div>
+                      </div>
+                      <div className="relative z-10">
+                         <div className="flex justify-between items-end">
                             <div>
-                               <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
-                                  <Box className="w-5 h-5 text-emerald-600" />
-                               </div>
-                               <h3 className="text-2xl font-bold text-gray-900 leading-tight">{item.name}</h3>
+                               <p className="text-sm font-semibold text-gray-400 mb-1">ID: {item.id.slice(0,8)}...</p>
+                               <p className="text-sm font-semibold text-gray-500 flex items-center"><Map className="w-4 h-4 mr-1"/> {item.location}</p>
                             </div>
-                            <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                               item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
-                               item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
-                               'bg-amber-100 text-amber-700'
-                            }`}>
-                               {item.status}
-                            </span>
-                         </div>
-                         <div className="relative z-10">
-                            <div className="flex justify-between items-end">
-                               <div>
-                                  <p className="text-sm font-semibold text-gray-400 mb-1">ID: {item.id}</p>
-                                  <p className="text-sm font-semibold text-gray-500 flex items-center"><Map className="w-4 h-4 mr-1"/> {item.location}</p>
-                               </div>
-                               <div className="text-right">
-                                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1">Quantity</span>
-                                  <span className="text-4xl font-black text-emerald-600">{item.count.toLocaleString()}</span>
-                               </div>
+                            <div className="text-right">
+                               <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1">Quantity</span>
+                               <span className="text-4xl font-black text-emerald-600">{Number(item.count).toLocaleString()}</span>
                             </div>
                          </div>
-                      </motion.div>
-                   ))}
-                </div>
+                      </div>
+                   </motion.div>
+                ))}
 
                 <AnimatePresence>
                    {selectedInventory && (
@@ -362,8 +382,16 @@ export default function App({ user }) {
                                Confirm logistics routing for {selectedInventory.count} units originating from {selectedInventory.location}. This action integrates directly into the global bandwidth tracker.
                             </p>
                             <div className="flex space-x-4">
-                               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center">
-                                  <ArrowUpRight className="mr-2 w-5 h-5" /> Confirm Deployment
+                               <motion.button
+                                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                  onClick={async () => {
+                                    const deployed = Math.max(0, selectedInventory.count - 10);
+                                    await deployItem(selectedInventory.id, deployed);
+                                    setSelectedInventory(null);
+                                  }}
+                                  className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center"
+                               >
+                                  <ArrowUpRight className="mr-2 w-5 h-5" /> Confirm Deployment (-10 units)
                                </motion.button>
                                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSelectedInventory(null)} className="px-8 py-4 bg-white border border-emerald-200 text-emerald-600 font-bold rounded-xl hover:bg-gray-50 transition">
                                   Cancel
@@ -374,6 +402,14 @@ export default function App({ user }) {
                    )}
                 </AnimatePresence>
               </motion.div>
+            )}
+
+            {/* ADD ITEM MODAL */}
+            {showModal && (
+              <AddItemModal
+                onClose={() => setShowModal(false)}
+                onAdd={addItem}
+              />
             )}
 
             {/* ANALYTICS TAB */}
