@@ -4,6 +4,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { useInventory } from './hooks/useInventory';
 import AddItemModal from './AddItemModal';
+import DataAnalyzer from './DataAnalyzer';
 import { 
   BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
@@ -414,24 +415,8 @@ export default function App({ user }) {
 
             {/* ANALYTICS TAB */}
             {activeTab === 'analytics' && (
-              <motion.div key="analytics" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto space-y-8">
-                  <div className="flex justify-between items-center mb-8">
-                     <h2 className="text-4xl font-black text-gray-900 tracking-tight">Analytics & Insights</h2>
-                  </div>
-                  <motion.div variants={popIn} className="bg-white p-10 border border-gray-100 rounded-3xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
-                    <h3 className="text-xl font-bold text-gray-900 tracking-tight mb-8">Monthly Carbon Emissions (Metric Tons)</h3>
-                    <div className="h-[400px]">
-                       <ResponsiveContainer width="100%" height="100%">
-                         <BarChart data={emissionsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6"/>
-                           <XAxis dataKey="month" stroke="#9ca3af" axisLine={false} tickLine={false} dy={10} tick={{fontFamily: 'Inter', fontWeight: 600}}/>
-                           <YAxis stroke="#9ca3af" axisLine={false} tickLine={false} tick={{fontFamily: 'Inter', fontWeight: 600}}/>
-                           <Tooltip cursor={{fill: '#ecfdf5'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', fontWeight: 'bold'}}/>
-                           <Bar dataKey="emissions" fill="#10b981" radius={[8,8,0,0]} maxBarSize={60} />
-                         </BarChart>
-                       </ResponsiveContainer>
-                    </div>
-                 </motion.div>
+              <motion.div key="analytics" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto">
+                <DataAnalyzer items={inventoryItems} />
               </motion.div>
             )}
 
