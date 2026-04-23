@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Box, MapPin, Package, Tag } from 'lucide-react';
+import { X, Box, MapPin, Package, Tag, Activity } from 'lucide-react';
 
 const LOCATIONS = ['Warehouse A', 'Warehouse B', 'Warehouse C', 'Warehouse D'];
 const STATUSES = ['In Stock', 'In Transit', 'Low Stock'];
+const PRODUCT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
 
 export default function AddItemModal({ onClose, onAdd }) {
   const [form, setForm] = useState({
@@ -11,6 +12,8 @@ export default function AddItemModal({ onClose, onAdd }) {
     location: 'Warehouse A',
     status: 'In Stock',
     count: '',
+    type: 'Electronics',
+    sales: '',
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -20,6 +23,8 @@ export default function AddItemModal({ onClose, onAdd }) {
     if (!form.name.trim()) e.name = 'Item name is required';
     if (!form.count || isNaN(form.count) || Number(form.count) < 0)
       e.count = 'Enter a valid quantity';
+    if (!form.sales || isNaN(form.sales) || Number(form.sales) < 0)
+      e.sales = 'Enter valid monthly sales';
     return e;
   };
 
@@ -29,7 +34,7 @@ export default function AddItemModal({ onClose, onAdd }) {
     if (Object.keys(e2).length > 0) { setErrors(e2); return; }
     setSaving(true);
     try {
-      await onAdd({ ...form, count: Number(form.count) });
+      await onAdd({ ...form, count: Number(form.count), sales: Number(form.sales) });
       onClose();
     } catch (err) {
       console.error(err);
@@ -132,6 +137,36 @@ export default function AddItemModal({ onClose, onAdd }) {
                   }`}
                 />
                 {errors.count && <p className="text-red-500 text-xs font-semibold mt-1">{errors.count}</p>}
+              </div>
+            </div>
+
+            {/* Type & Sales row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Product Type</label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
+                >
+                  {PRODUCT_TYPES.map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <Activity className="w-4 h-4 inline mr-1 text-emerald-500" /> Monthly Sales
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 150"
+                  value={form.sales}
+                  onChange={(e) => setForm({ ...form, sales: e.target.value })}
+                  className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                    errors.sales ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400'
+                  }`}
+                />
+                {errors.sales && <p className="text-red-500 text-xs font-semibold mt-1">{errors.sales}</p>}
               </div>
             </div>
 
