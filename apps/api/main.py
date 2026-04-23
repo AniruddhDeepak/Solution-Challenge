@@ -39,6 +39,10 @@ class InventoryItem(BaseModel):
 class AnalysisRequest(BaseModel):
     items: List[InventoryItem]
 
+class ChatRequest(BaseModel):
+    message: str
+    inventory_data: List[InventoryItem]
+
 
 def compute_fallback_analysis(inventory_data: list) -> dict:
     """Compute smart analysis from inventory data without AI."""
@@ -202,3 +206,43 @@ async def analyze_inventory(request: AnalysisRequest):
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "ai_ready": client is not None}
+
+@app.post("/api/chat")
+async def chat_assistant(request: ChatRequest):
+    if not client:
+        return {"reply": "AI is currently offline. Please check API configuration."}
+        
+    inventory_context = json.dumps([item.dict() for item in request.inventory_data])
+    
+    prompt = f"""
+    You are 'ChainHandler AI', a professional Supply Chain Assistant.
+    Answer the user's query based on the following current inventory data:
+    {inventory_context}
+    
+    User Query: {request.message}
+    
+    Provide a concise, actionable, and professional response. Keep it brief (under 100 words if possible) and highly relevant to the data provided. Use plain text or basic formatting.
+    """
+    
+    models_to_try = [
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash-8b",
+        "gemini-2.0-flash",
+    ]
+    
+    for model_name in models_to_try:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+            return {"reply": response.text.strip()}
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                continue
+            else:
+                print(f"Chat error with {model_name}: {err_str}")
+                break
+                
+    return {"reply": "I'm currently receiving too many requests due to free-tier limits. Please try again in a moment."}

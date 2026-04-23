@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
-import { auth } from './firebase';
 import { useInventory } from './hooks/useInventory';
+import { useWarehouses } from './hooks/useWarehouses';
+import { useShipments } from './hooks/useShipments';
 import AddItemModal from './AddItemModal';
+import AddWarehouseModal from './AddWarehouseModal';
 import DataAnalyzer from './DataAnalyzer';
 import { 
   BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
-  ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2
+  ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2, Target, Leaf,
+  MessageCircle, Send, Bot, User, X, Clock, PackageCheck
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -21,8 +24,16 @@ export default function App({ user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInventory, setSelectedInventory] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showWarehouseModal, setShowWarehouseModal] = useState(false);
+  
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([{ role: 'ai', text: 'Hi! I am your ChainHandler AI assistant. How can I help you optimize your supply chain today?' }]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, deleteItem } = useInventory();
+  const { warehouses, loading: whLoading, addWarehouse, deleteWarehouse } = useWarehouses();
+  const { shipments, loading: shipLoading, addShipment, updateShipmentStatus } = useShipments();
 
   const networkTraffic = Array.from({ length: 20 }, (_, i) => ({ 
     time: `${i}:00`, 
@@ -42,11 +53,36 @@ export default function App({ user }) {
     setHealthStatus('healthy');
   }, []);
 
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    const userMsg = chatInput;
+    setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg, inventory_data: inventoryItems })
+      });
+      const data = await response.json();
+      setChatMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: 'ai', text: 'Sorry, I am having trouble connecting to the network right now.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   const navItems = [
     { id: 'dashboard', icon: Activity, label: 'Control Center' },
     { id: 'inventory', icon: Box, label: 'Inventory Grid' },
+    { id: 'network', icon: Map, label: 'Warehouses' },
     { id: 'analytics', icon: BarChart3, label: 'Data Analytics' },
-    { id: 'system', icon: Terminal, label: 'System Terminal' }
+    { id: 'shipments', icon: Truck, label: 'Active Shipments' }
   ];
 
 
@@ -184,7 +220,7 @@ export default function App({ user }) {
                 <div className="flex justify-between items-end mb-4">
                   <div>
                     <h2 className="text-4xl font-black text-gray-900 tracking-tight">Overview Setup</h2>
-                    <p className="text-gray-500 font-medium mt-2">Monitor your global supply chain telemetry in real-time.</p>
+                    <p className="text-gray-500 font-medium mt-2">Monitor your regional supply chain telemetry in real-time.</p>
                   </div>
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all flex items-center">
                     <TrendingUp className="mr-2 w-5 h-5" /> Generate Report
@@ -197,7 +233,7 @@ export default function App({ user }) {
                     { label: 'Total Shipments', val: '1,248', trend: '+12%', positive: true, icon: Truck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Active Warehouses', val: '24', trend: 'Stable', positive: true, icon: Map, color: 'text-blue-500', bg: 'bg-blue-50' },
                     { label: 'Pending Alerts', val: '3', trend: '-2', positive: true, icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
-                    { label: 'Global Reach', val: '42', unit: 'Countries', positive: true, icon: Globe, color: 'text-purple-500', bg: 'bg-purple-50' }
+                    { label: 'Active Zones', val: '12', unit: 'Districts', positive: true, icon: Globe, color: 'text-purple-500', bg: 'bg-purple-50' }
                   ].map((stat, i) => (
                     <motion.div 
                       key={i} variants={popIn}
@@ -286,6 +322,47 @@ export default function App({ user }) {
                     </div>
                   </motion.div>
                 </div>
+
+                {/* SDG Impact Section */}
+                <motion.div variants={popIn} className="bg-gradient-to-r from-emerald-800 to-emerald-950 p-8 rounded-3xl shadow-[0_15px_40px_-10px_rgba(16,185,129,0.4)] relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+                  {/* Decorative Elements */}
+                  <div className="absolute top-[-50%] left-[-10%] w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+                  <div className="absolute bottom-[-50%] right-[-10%] w-[300px] h-[300px] bg-emerald-400/20 rounded-full blur-[60px] pointer-events-none"></div>
+
+                  <div className="relative z-10 md:w-2/3 mb-6 md:mb-0 md:pr-8">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md">
+                        <Target className="w-6 h-6 text-emerald-300" />
+                      </div>
+                      <h3 className="text-2xl font-black text-white tracking-tight">Sustainable Development Goals</h3>
+                    </div>
+                    <p className="text-emerald-100 font-medium text-lg leading-relaxed">
+                      ChainHandler's AI directly optimizes regional logistics for Tier 2 and Tier 3 manufacturers, aligning with the United Nations SDGs. 
+                      By reducing empty miles and optimizing inventory placement, we are building a greener and more efficient local ecosystem.
+                    </p>
+                  </div>
+                  
+                  <div className="relative z-10 flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                    <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-white font-black text-xl shrink-0 shadow-inner">
+                        9
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-emerald-200 uppercase tracking-wider mb-1">Industry & Innovation</p>
+                        <p className="text-white font-bold leading-tight">Resilient<br/>Infrastructure</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-amber-600 rounded-xl flex items-center justify-center text-white font-black text-xl shrink-0 shadow-inner">
+                        12
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-emerald-200 uppercase tracking-wider mb-1">Responsible Prod.</p>
+                        <p className="text-white font-bold leading-tight">Optimized<br/>Consumption</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
 
@@ -380,7 +457,7 @@ export default function App({ user }) {
                          <div className="relative z-10">
                             <h3 className="text-3xl font-black text-gray-900 mb-2">Deploy {selectedInventory.name}</h3>
                             <p className="text-emerald-700 font-medium text-lg mb-8 max-w-2xl">
-                               Confirm logistics routing for {selectedInventory.count} units originating from {selectedInventory.location}. This action integrates directly into the global bandwidth tracker.
+                               Confirm logistics routing for {selectedInventory.count} units originating from {selectedInventory.location}. This action integrates directly into the regional bandwidth tracker.
                             </p>
                             <div className="flex space-x-4">
                                <motion.button
@@ -388,6 +465,12 @@ export default function App({ user }) {
                                   onClick={async () => {
                                     const deployed = Math.max(0, selectedInventory.count - 10);
                                     await deployItem(selectedInventory.id, deployed);
+                                    await addShipment({
+                                      itemName: selectedInventory.name,
+                                      quantity: 10,
+                                      origin: selectedInventory.location,
+                                      destination: 'Regional Distributor'
+                                    });
                                     setSelectedInventory(null);
                                   }}
                                   className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center"
@@ -413,6 +496,83 @@ export default function App({ user }) {
               />
             )}
 
+            {/* GLOBAL NETWORK TAB */}
+            {activeTab === 'network' && (
+              <motion.div 
+                key="network"
+                variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }}
+                className="max-w-[1600px] mx-auto space-y-8"
+              >
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tight">Warehouses</h2>
+                    <p className="text-gray-500 font-medium mt-2">Manage physical infrastructure across your Tier 2 and Tier 3 network.</p>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowWarehouseModal(true)}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all flex items-center"
+                  >
+                    <Globe className="mr-2 w-5 h-5" /> Add Regional Warehouse
+                  </motion.button>
+                </div>
+
+                {whLoading ? (
+                  <div className="flex items-center justify-center py-24">
+                    <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+                    <span className="ml-3 text-gray-500 font-semibold">Syncing network nodes...</span>
+                  </div>
+                ) : warehouses.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-3xl border border-gray-100 shadow-sm">
+                    <Map className="w-16 h-16 text-gray-300 mb-4" />
+                    <h3 className="text-xl font-bold text-gray-400">No active nodes</h3>
+                    <p className="text-gray-400 mt-2">Click "Add Regional Warehouse" to expand your supply network.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {warehouses.map((wh) => (
+                      <motion.div 
+                        key={wh.id} variants={popIn}
+                        whileHover={{ y: -8 }}
+                        className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:shadow-xl hover:border-blue-200 transition-all flex flex-col justify-between"
+                      >
+                        <div className="flex justify-between items-start mb-6">
+                          <div>
+                            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                              <Map className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 leading-tight">{wh.name}</h3>
+                            <p className="text-sm font-semibold text-gray-500 mt-1 flex items-center">
+                              <Globe className="w-4 h-4 mr-1" /> {wh.region}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => deleteWarehouse(wh.id)}
+                            className="p-2 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-xl transition-colors"
+                            title="Delete Node"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="pt-4 border-t border-gray-50 flex justify-between items-end">
+                          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Max Capacity</span>
+                          <span className="text-3xl font-black text-blue-600">{Number(wh.capacity).toLocaleString()}</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ADD WAREHOUSE MODAL */}
+            {showWarehouseModal && (
+              <AddWarehouseModal
+                onClose={() => setShowWarehouseModal(false)}
+                onAdd={addWarehouse}
+              />
+            )}
+
             {/* ANALYTICS TAB */}
             {activeTab === 'analytics' && (
               <motion.div key="analytics" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto">
@@ -420,38 +580,158 @@ export default function App({ user }) {
               </motion.div>
             )}
 
-            {/* SYSTEM TERMINAL TAB */}
-            {activeTab === 'system' && (
-              <motion.div key="system" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto h-[70vh] bg-gray-900 rounded-3xl p-8 border border-emerald-600 shadow-xl overflow-hidden flex flex-col font-mono relative">
-                 <div className="flex items-center text-emerald-500 mb-6 border-b border-emerald-600/30 pb-4">
-                    <Terminal className="w-5 h-5 mr-3" />
-                    <h2 className="text-xl font-bold tracking-widest uppercase">Admin System Terminal</h2>
-                 </div>
-                 <div className="flex-1 overflow-y-auto space-y-4 pr-4 custom-scrollbar text-base">
-                    {/* Reuse the 'logs' array from the effect */}
-                    {emissionsData && [
-                      { time: '10:00:00 AM', msg: 'System initialized. Monitoring global nodes.', type: 'info' },
-                      { time: '10:01:23 AM', msg: 'Warehouse D successfully connected.', type: 'info' },
-                      { time: '11:42:15 AM', msg: 'Freight path updated for fuel efficiency.', type: 'info' },
-                      { time: '01:15:20 PM', msg: 'Lithium batteries below threshold in Sector C.', type: 'warn' },
-                      { time: '02:00:45 PM', msg: 'Order #8922 reached destination.', type: 'success' },
-                    ].map((log, i) => (
-                       <div key={i} className="text-gray-300">
-                          <span className="text-emerald-500 font-bold mr-4">[{log.time}]</span>
-                          {log.msg}
-                       </div>
-                    ))}
-                    <div className="text-emerald-400 flex items-center mt-4 pt-4 border-t border-emerald-600/30">
-                       <span className="mr-2">&gt;</span> cmdr@chainhandler:~#
-                       <span className="w-2.5 h-5 ml-2 bg-emerald-400 animate-[pulse_1s_ease-in-out_infinite]"></span>
+            {/* ACTIVE SHIPMENTS TAB */}
+            {activeTab === 'shipments' && (
+              <motion.div key="shipments" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto space-y-8">
+                 <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tight">Active Shipments</h2>
+                    <p className="text-gray-500 font-medium mt-2">Track real-time logistics and dispatch status across your zones.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* PENDING */}
+                  <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-bold text-gray-700 flex items-center"><Clock className="w-5 h-5 mr-2 text-amber-500" /> Pending Dispatch</h3>
+                      <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full">{shipments.filter(s => s.status === 'pending').length}</span>
                     </div>
-                 </div>
+                    <div className="space-y-4">
+                      {shipments.filter(s => s.status === 'pending').map(s => (
+                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-bold text-gray-900">{s.itemName}</h4>
+                            <span className="text-xs font-bold text-gray-400">QTY: {s.quantity}</span>
+                          </div>
+                          <p className="text-xs font-semibold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
+                          <button onClick={() => updateShipmentStatus(s.id, 'transit')} className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-xl text-sm transition-colors">
+                            Dispatch Shipment
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* IN TRANSIT */}
+                  <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-bold text-gray-700 flex items-center"><Truck className="w-5 h-5 mr-2 text-blue-500" /> In Transit</h3>
+                      <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">{shipments.filter(s => s.status === 'transit').length}</span>
+                    </div>
+                    <div className="space-y-4">
+                      {shipments.filter(s => s.status === 'transit').map(s => (
+                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-blue-100 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-bold text-gray-900">{s.itemName}</h4>
+                            <span className="text-xs font-bold text-gray-400">QTY: {s.quantity}</span>
+                          </div>
+                          <p className="text-xs font-semibold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
+                          <button onClick={() => updateShipmentStatus(s.id, 'delivered')} className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold rounded-xl text-sm transition-colors">
+                            Mark Delivered
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* DELIVERED */}
+                  <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-bold text-gray-700 flex items-center"><PackageCheck className="w-5 h-5 mr-2 text-emerald-500" /> Delivered</h3>
+                      <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">{shipments.filter(s => s.status === 'delivered').length}</span>
+                    </div>
+                    <div className="space-y-4">
+                      {shipments.filter(s => s.status === 'delivered').map(s => (
+                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 hover:shadow-md transition-shadow opacity-75">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-bold text-gray-900 line-through decoration-gray-300">{s.itemName}</h4>
+                            <span className="text-xs font-bold text-gray-400">QTY: {s.quantity}</span>
+                          </div>
+                          <p className="text-xs font-semibold text-gray-500">{s.origin} → {s.destination}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             )}
 
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Floating AI Chat Widget */}
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end">
+        <AnimatePresence>
+          {isChatOpen && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              className="bg-white w-80 sm:w-96 rounded-3xl shadow-2xl mb-4 border border-emerald-100 overflow-hidden flex flex-col h-[500px]"
+            >
+              <div className="bg-emerald-600 p-4 text-white flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <Bot className="w-6 h-6 text-emerald-100" />
+                  <h3 className="font-bold">ChainHandler AI</h3>
+                </div>
+                <button onClick={() => setIsChatOpen(false)} className="text-emerald-200 hover:text-white transition">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-4">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-white border border-gray-100 shadow-sm text-gray-800 rounded-bl-none'}`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                {isChatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-gray-100 shadow-sm text-gray-800 p-3 rounded-2xl rounded-bl-none flex space-x-1">
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-75"></div>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-150"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-4 bg-white border-t border-gray-100">
+                <form onSubmit={handleSendMessage} className="flex space-x-2">
+                  <input 
+                    type="text" 
+                    placeholder="Ask about inventory..." 
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isChatLoading || !chatInput.trim()} 
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white p-2 rounded-xl transition flex items-center justify-center shrink-0"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-colors duration-300 ${isChatOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+        >
+          {isChatOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}
+        </motion.button>
+      </div>
+
     </div>
   );
 }

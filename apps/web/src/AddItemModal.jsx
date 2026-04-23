@@ -2,25 +2,36 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Box, MapPin, Package, Tag, Activity } from 'lucide-react';
 
-const LOCATIONS = ['Warehouse A', 'Warehouse B', 'Warehouse C', 'Warehouse D'];
+import { useWarehouses } from './hooks/useWarehouses';
+
 const STATUSES = ['In Stock', 'In Transit', 'Low Stock'];
 const PRODUCT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
 
 export default function AddItemModal({ onClose, onAdd }) {
+  const { warehouses, loading: whLoading } = useWarehouses();
+
   const [form, setForm] = useState({
     name: '',
-    location: 'Warehouse A',
+    location: '',
     status: 'In Stock',
     count: '',
     type: 'Electronics',
     sales: '',
   });
+
+  // Set default location once warehouses load
+  React.useEffect(() => {
+    if (!whLoading && warehouses.length > 0 && !form.location) {
+      setForm(prev => ({ ...prev, location: warehouses[0].name }));
+    }
+  }, [warehouses, whLoading, form.location]);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Item name is required';
+    if (!form.location) e.location = 'Please create a warehouse first';
     if (!form.count || isNaN(form.count) || Number(form.count) < 0)
       e.count = 'Enter a valid quantity';
     if (!form.sales || isNaN(form.sales) || Number(form.sales) < 0)
@@ -104,10 +115,20 @@ export default function AddItemModal({ onClose, onAdd }) {
               <select
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
+                className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none text-sm font-medium bg-white transition-all ${
+                  errors.location ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400'
+                }`}
+                disabled={whLoading || warehouses.length === 0}
               >
-                {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
+                {whLoading ? (
+                  <option value="">Loading warehouses...</option>
+                ) : warehouses.length === 0 ? (
+                  <option value="">No warehouses found - create one first!</option>
+                ) : (
+                  warehouses.map((w) => <option key={w.id} value={w.name}>{w.name} ({w.region})</option>)
+                )}
               </select>
+              {errors.location && <p className="text-red-500 text-xs font-semibold mt-1">{errors.location}</p>}
             </div>
 
             {/* Status & Quantity row */}
