@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   LineChart, Line, Legend, ComposedChart
 } from 'recharts';
 import { 
   TrendingUp, AlertTriangle, Lightbulb, Activity, Globe, MessageSquare, 
-  DollarSign, ShoppingCart, Zap, Package
+  DollarSign, ShoppingCart, Zap, Package, Sparkles, RefreshCw
 } from 'lucide-react';
 
 const PRODUCT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
@@ -21,23 +21,51 @@ const hashString = (str) => {
 };
 
 export default function DataAnalyzer({ items }) {
-  // 1. Process and normalize inventory data
-  const processedData = useMemo(() => {
-    return items.map(item => {
-      // If the item lacks type/sales (e.g. created before the update), generate realistic mock data
-      const idHash = hashString(item.id || item.name);
-      const mockType = PRODUCT_TYPES[idHash % PRODUCT_TYPES.length];
-      // Base mock sales on count, so it's somewhat proportional
-      const baseSales = Math.max(10, Math.floor(Number(item.count) * 0.4));
-      const mockSales = baseSales + (idHash % 100); 
+  const [aiData, setAiData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-      return {
-        ...item,
-        type: item.type || mockType,
-        sales: item.sales !== undefined && item.sales !== '' ? Number(item.sales) : mockSales,
-        count: Number(item.count)
-      };
-    });
+  const iconMap = {
+    MessageSquare,
+    Globe,
+    DollarSign,
+    ShoppingCart
+  };
+
+  const fetchAIAnalysis = async () => {
+    if (items.length === 0) return;
+    
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:8000/api/ai-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
+      
+      if (!response.ok) throw new Error('AI Analysis failed');
+      const data = await response.json();
+      setAiData(data);
+    } catch (err) {
+      console.error(err);
+      setError("AI analysis unavailable. Check API connection.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAIAnalysis();
+  }, [items.length]); // Refresh when item count changes
+
+  // 1. Process and normalize inventory data for charts
+  const processedData = useMemo(() => {
+    return items.map(item => ({
+      ...item,
+      sales: item.sales !== undefined && item.sales !== '' ? Number(item.sales) : 0,
+      count: Number(item.count)
+    }));
   }, [items]);
 
   // 2. Aggregate Data for Charts (Sales vs Stock by Type)
@@ -55,71 +83,31 @@ export default function DataAnalyzer({ items }) {
     return Object.values(map).filter(d => d.stock > 0 || d.sales > 0);
   }, [processedData]);
 
-  // 3. Generate Actionable Insights
+  // 3. Fallback insights if AI is loading or fails
   const insights = useMemo(() => {
+    if (aiData) return {
+      topSeller: aiData.topSeller,
+      restockItems: aiData.restockNeeded,
+      overstockedItems: aiData.efficiencyTips
+    };
+
     if (processedData.length === 0) return null;
 
-    // Highest Demand Product
     const topSeller = [...processedData].sort((a, b) => b.sales - a.sales)[0];
-    
-    // Items needing restock (high sales relative to stock or strictly low stock)
-    const restockItems = processedData.filter(item => 
-      item.status === 'Low Stock' || (item.sales > item.count * 0.8 && item.count < 100)
-    ).slice(0, 3);
+    const restockItems = processedData.filter(item => item.count < 10).map(i => ({ name: i.name, count: i.count }));
+    return { topSeller, restockItems, overstockedItems: [] };
+  }, [processedData, aiData]);
 
-    // Efficiency Suggestions
-    const overstockedItems = processedData.filter(item => 
-      item.count > item.sales * 3 && item.count > 100
-    ).slice(0, 2);
-
-    return { topSeller, restockItems, overstockedItems };
-  }, [processedData]);
-
-  // 4. Simulated Market Intelligence (News, Social Media, Costs)
+  // 4. Market Intelligence Feed
   const marketIntelligence = useMemo(() => {
-    if (!insights?.topSeller) return [];
-    
-    const topType = insights.topSeller.type;
-    const hash = hashString(topType);
-    const sentiment = 60 + (hash % 35); // 60% to 95%
-    const costTrend = (hash % 15) - 5; // -5% to +10%
-
-    return [
-      {
-        id: 'social',
-        icon: MessageSquare,
-        title: 'Social Media Sentiment',
-        value: `${sentiment}% Positive`,
-        desc: `High engagement detected for ${topType}. Influencer trends indicate a spike in upcoming consumer demand.`,
-        color: 'text-blue-500', bg: 'bg-blue-50'
-      },
-      {
-        id: 'news',
-        icon: Globe,
-        title: 'Global Supply Chain News',
-        value: 'Port Congestion Clearing',
-        desc: `Recent maritime reports show a 12% increase in shipping throughput, easing bottlenecks for ${topType} imports.`,
-        color: 'text-purple-500', bg: 'bg-purple-50'
-      },
-      {
-        id: 'cost',
-        icon: DollarSign,
-        title: 'Cost Effectiveness',
-        value: `${costTrend > 0 ? '+' : ''}${costTrend}% Cost Variance`,
-        desc: `Raw material acquisition for ${topType} has seen recent price fluctuations. Consider locking in long-term contracts now.`,
-        color: costTrend > 0 ? 'text-amber-500' : 'text-emerald-500',
-        bg: costTrend > 0 ? 'bg-amber-50' : 'bg-emerald-50'
-      },
-      {
-        id: 'demand',
-        icon: ShoppingCart,
-        title: 'Consumer Demand',
-        value: 'Accelerating (+18%)',
-        desc: `${insights.topSeller.name} is tracking exceptionally well across primary retail hubs. Prepare distribution channels.`,
-        color: 'text-rose-500', bg: 'bg-rose-50'
-      }
-    ];
-  }, [insights]);
+    if (aiData?.marketIntelligence) {
+      return aiData.marketIntelligence.map(item => ({
+        ...item,
+        icon: iconMap[item.icon] || Globe
+      }));
+    }
+    return [];
+  }, [aiData]);
 
   const popIn = {
     hidden: { opacity: 0, y: 20 },
@@ -147,26 +135,75 @@ export default function DataAnalyzer({ items }) {
       {/* 1. Top Bar: Header & Top Insights */}
       <div className="flex justify-between items-end mb-4">
         <div>
-           <h2 className="text-4xl font-black text-gray-900 tracking-tight">Data Analytics Engine</h2>
-           <p className="text-gray-500 font-medium mt-2">AI-driven market intelligence & inventory trend analysis.</p>
+           <div className="flex items-center space-x-3 mb-1">
+             <h2 className="text-4xl font-black text-gray-900 tracking-tight">AI Strategic Engine</h2>
+             {isLoading && (
+               <motion.div 
+                 animate={{ rotate: 360 }} 
+                 transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                 className="text-indigo-500"
+               >
+                 <RefreshCw className="w-6 h-6" />
+               </motion.div>
+             )}
+           </div>
+           <p className="text-gray-500 font-medium">Real-time Gemini AI analysis of your supply chain ecosystem.</p>
         </div>
+        <button 
+          onClick={fetchAIAnalysis}
+          disabled={isLoading}
+          className="flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-200"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>{isLoading ? 'Analyzing...' : 'Refresh AI'}</span>
+        </button>
       </div>
 
-      {/* 2. Market Intelligence Feed (The new requirement) */}
-      <motion.div variants={popIn} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+      {error && (
+        <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl text-rose-600 font-bold flex items-center">
+          <AlertTriangle className="w-5 h-5 mr-3" />
+          {error}
+        </div>
+      )}
+
+      {/* 2. Market Intelligence Feed */}
+      <motion.div variants={popIn} className="relative overflow-hidden bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+        <AnimatePresence>
+          {isLoading && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 z-10 bg-white/60 backdrop-blur-[2px] flex items-center justify-center"
+            >
+              <div className="flex flex-col items-center">
+                <div className="flex space-x-2 mb-4">
+                  {[0, 1, 2].map(i => (
+                    <motion.div 
+                      key={i}
+                      animate={{ y: [0, -10, 0] }}
+                      transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
+                      className="w-3 h-3 bg-indigo-500 rounded-full"
+                    />
+                  ))}
+                </div>
+                <p className="font-bold text-indigo-600 animate-pulse">Gemini is analyzing market data...</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         <div className="flex items-center mb-6">
           <Globe className="w-6 h-6 text-indigo-500 mr-3" />
           <h3 className="text-xl font-black text-gray-900 tracking-tight">Live Market Intelligence</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {marketIntelligence.map((item) => (
-            <div key={item.id} className="p-5 rounded-2xl border border-gray-50 bg-gray-50 hover:bg-white hover:shadow-xl transition-all duration-300 group cursor-default">
-              <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                <item.icon className={`w-5 h-5 ${item.color}`} />
+          {(marketIntelligence.length > 0 ? marketIntelligence : [1,2,3,4]).map((item, idx) => (
+            <div key={item.id || idx} className={`p-5 rounded-2xl border border-gray-50 bg-gray-50 group cursor-default ${!aiData ? 'animate-pulse' : ''}`}>
+              <div className={`w-10 h-10 rounded-xl ${item.bg || 'bg-gray-100'} flex items-center justify-center mb-4`}>
+                {item.icon ? <item.icon className={`w-5 h-5 ${item.color}`} /> : <Activity className="w-5 h-5 text-gray-300" />}
               </div>
-              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">{item.title}</h4>
-              <p className={`text-xl font-black mb-3 ${item.color}`}>{item.value}</p>
-              <p className="text-sm text-gray-600 font-medium leading-relaxed">{item.desc}</p>
+              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">{item.title || 'Loading...'}</h4>
+              <p className={`text-xl font-black mb-3 ${item.color || 'text-gray-400'}`}>{item.value || '---'}</p>
+              <p className="text-sm text-gray-600 font-medium leading-relaxed">{item.desc || 'Waiting for AI processing...'}</p>
             </div>
           ))}
         </div>
@@ -241,19 +278,22 @@ export default function DataAnalyzer({ items }) {
             )}
 
             {/* Efficiency Improvements */}
-            {insights?.overstockedItems.length > 0 && (
+            {insights?.overstockedItems?.length > 0 && (
               <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start">
                 <Lightbulb className="w-5 h-5 text-blue-600 mr-3 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-sm font-bold text-blue-900">Capital Efficiency</h4>
                   <p className="text-xs text-blue-700 mt-1 font-medium">
-                    Consider discounting or halting production for overstocked items to free up capital:
+                    AI suggestions for inventory optimization:
                   </p>
                   <ul className="mt-2 space-y-1">
-                    {insights.overstockedItems.map(item => (
-                      <li key={item.id} className="text-xs font-bold text-blue-800 flex justify-between">
-                        <span className="truncate max-w-[120px]">{item.name}</span>
-                        <span>{item.count} units</span>
+                    {insights.overstockedItems.map((item, idx) => (
+                      <li key={idx} className="text-xs font-bold text-blue-800 flex flex-col mb-2">
+                        <div className="flex justify-between">
+                          <span>{item.name}</span>
+                          <span>{item.units} units</span>
+                        </div>
+                        <span className="font-medium text-[10px] text-blue-600 italic mt-0.5">{item.reason}</span>
                       </li>
                     ))}
                   </ul>

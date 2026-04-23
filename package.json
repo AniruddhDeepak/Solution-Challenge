@@ -1,0 +1,14 @@
+{
+  "name": "solution-challenge-root",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ChainHandler Monorepo",
+  "scripts": {
+    "web": "npm run dev --prefix apps/web",
+    "api": "cd apps/api && .\\venv\\Scripts\\python.exe -m uvicorn main:app --reload",
+    "dev": "concurrently -n \"WEB,API\" -c \"cyan,magenta\" \"npm run web\" \"npm run api\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
