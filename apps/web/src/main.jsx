@@ -12,6 +12,13 @@ function Root() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        localStorage.setItem('chainhandler_last_user', JSON.stringify({
+          displayName: currentUser.displayName,
+          email: currentUser.email,
+          photoURL: currentUser.photoURL
+        }));
+      }
       setUser(currentUser);
       setLoading(false);
     });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
+import { auth } from './firebase';
 import { useInventory } from './hooks/useInventory';
 import { useWarehouses } from './hooks/useWarehouses';
 import { useShipments } from './hooks/useShipments';
@@ -11,7 +12,7 @@ import {
   BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
   ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2, Target, Leaf,
-  MessageCircle, Send, Bot, User, X, Clock, PackageCheck
+  MessageCircle, Send, Bot, User, X, Clock, PackageCheck, Lock
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -238,24 +239,24 @@ export default function App({ user }) {
                     <motion.div 
                       key={i} variants={popIn}
                       whileHover={{ y: -8, scale: 1.02 }}
-                      className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] flex flex-col justify-between group cursor-pointer overflow-hidden relative"
+                      className="bg-gradient-to-br from-white to-gray-50 p-8 rounded-3xl border-2 border-white shadow-[0_15px_40px_-15px_rgba(0,0,0,0.08)] flex flex-col justify-between group cursor-pointer overflow-hidden relative"
                     >
-                       {/* Subtle hover gradient */}
-                       <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                       {/* Sleek Shimmer effect on hover */}
+                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out pointer-events-none"></div>
                        
                        <div className="relative z-10 flex justify-between items-start mb-6">
-                          <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">{stat.label}</span>
-                          <div className={`p-3 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform duration-300`}>
+                          <span className="text-sm font-black text-gray-400 uppercase tracking-widest">{stat.label}</span>
+                          <div className={`p-3 rounded-2xl ${stat.bg} shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
                              <stat.icon className={`w-6 h-6 ${stat.color}`} />
                           </div>
                        </div>
                        <div className="relative z-10 flex items-end justify-between">
                           <div className="flex items-baseline space-x-1">
-                             <h3 className="text-5xl font-black text-gray-900 tracking-tighter">{stat.val}</h3>
-                             {stat.unit && <span className="text-base text-gray-500 font-bold">{stat.unit}</span>}
+                             <h3 className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-gray-900 to-gray-500">{stat.val}</h3>
+                             {stat.unit && <span className="text-base text-gray-400 font-bold ml-1 tracking-tight">{stat.unit}</span>}
                           </div>
                           {stat.trend && (
-                            <span className={`text-sm font-bold px-3 py-1.5 rounded-lg ${stat.positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            <span className={`text-sm font-black px-3 py-1.5 rounded-xl shadow-sm border ${stat.positive ? 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200' : 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-red-200'}`}>
                                {stat.trend}
                             </span>
                           )}
@@ -599,15 +600,18 @@ export default function App({ user }) {
                     </div>
                     <div className="space-y-4">
                       {shipments.filter(s => s.status === 'pending').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-bold text-gray-900">{s.itemName}</h4>
-                            <span className="text-xs font-bold text-gray-400">QTY: {s.quantity}</span>
+                        <motion.div key={s.id} layoutId={s.id} className="relative bg-gradient-to-br from-white to-gray-50 p-5 rounded-2xl shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100 cursor-grab active:cursor-grabbing transition-all overflow-hidden group">
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-amber-400 to-amber-500"></div>
+                          <div className="pl-2">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-black text-gray-900 tracking-tight">{s.itemName}</h4>
+                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-500 mb-4 tracking-wide">{s.origin} <span className="text-amber-400 font-black px-1">→</span> {s.destination}</p>
+                            <button onClick={() => updateShipmentStatus(s.id, 'transit')} className="w-full py-2.5 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 text-blue-700 font-bold rounded-xl text-sm transition-all border border-blue-200/50">
+                              Dispatch Shipment
+                            </button>
                           </div>
-                          <p className="text-xs font-semibold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
-                          <button onClick={() => updateShipmentStatus(s.id, 'transit')} className="w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-xl text-sm transition-colors">
-                            Dispatch Shipment
-                          </button>
                         </motion.div>
                       ))}
                     </div>
@@ -621,15 +625,18 @@ export default function App({ user }) {
                     </div>
                     <div className="space-y-4">
                       {shipments.filter(s => s.status === 'transit').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-blue-100 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-bold text-gray-900">{s.itemName}</h4>
-                            <span className="text-xs font-bold text-gray-400">QTY: {s.quantity}</span>
+                        <motion.div key={s.id} layoutId={s.id} className="relative bg-gradient-to-br from-white to-gray-50 p-5 rounded-2xl shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100 transition-all overflow-hidden group">
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
+                          <div className="pl-2">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-black text-gray-900 tracking-tight">{s.itemName}</h4>
+                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-500 mb-4 tracking-wide">{s.origin} <span className="text-blue-500 font-black px-1">→</span> {s.destination}</p>
+                            <button onClick={() => updateShipmentStatus(s.id, 'delivered')} className="w-full py-2.5 bg-gradient-to-r from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 text-emerald-700 font-bold rounded-xl text-sm transition-all border border-emerald-200/50">
+                              Mark Delivered
+                            </button>
                           </div>
-                          <p className="text-xs font-semibold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
-                          <button onClick={() => updateShipmentStatus(s.id, 'delivered')} className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold rounded-xl text-sm transition-colors">
-                            Mark Delivered
-                          </button>
                         </motion.div>
                       ))}
                     </div>
@@ -643,12 +650,18 @@ export default function App({ user }) {
                     </div>
                     <div className="space-y-4">
                       {shipments.filter(s => s.status === 'delivered').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 hover:shadow-md transition-shadow opacity-75">
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-bold text-gray-900 line-through decoration-gray-300">{s.itemName}</h4>
-                            <span className="text-xs font-bold text-gray-400">QTY: {s.quantity}</span>
+                        <motion.div key={s.id} layoutId={s.id} className="relative bg-gradient-to-br from-white to-gray-50 p-5 rounded-2xl shadow-sm border border-gray-100 opacity-80 transition-all overflow-hidden grayscale-[30%] hover:grayscale-0 hover:opacity-100">
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
+                          <div className="pl-2">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-black text-gray-900 line-through decoration-emerald-300 decoration-2 tracking-tight">{s.itemName}</h4>
+                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-500 mb-2 tracking-wide">{s.origin} <span className="text-emerald-500 font-black px-1">→</span> {s.destination}</p>
+                            <div className="w-full py-2 text-emerald-600 font-black text-xs text-center border-t border-emerald-50/50 pt-3 mt-3 flex items-center justify-center">
+                              <CheckCircle2 className="w-4 h-4 mr-1" /> Delivery Confirmed
+                            </div>
                           </div>
-                          <p className="text-xs font-semibold text-gray-500">{s.origin} → {s.destination}</p>
                         </motion.div>
                       ))}
                     </div>
