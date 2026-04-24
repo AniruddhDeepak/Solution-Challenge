@@ -207,42 +207,89 @@ async def analyze_inventory(request: AnalysisRequest):
 def health_check():
     return {"status": "healthy", "ai_ready": client is not None}
 
+def compute_chat_fallback(message: str, items: list) -> str:
+    """Smart rule-based chat when Gemini is rate-limited."""
+    msg = message.lower().strip()
+    if not items:
+        return "No inventory data found. Please register some items first."
+
+    total_items = len(items)
+    total_stock = sum(i.get("count", 0) for i in items)
+    total_sales = sum(i.get("sales", 0) for i in items)
+    out_of_stock = [i for i in items if i.get("count", 0) == 0]
+    low_stock = [i for i in items if 0 < i.get("count", 0) <= 10]
+    top_seller = max(items, key=lambda x: x.get("sales", 0), default=None)
+    most_stock = max(items, key=lambda x: x.get("count", 0), default=None)
+
+    if any(w in msg for w in ["hello", "hi", "hey", "help"]):
+        return (f"Hello! I'm ChainHandler AI. You have {total_items} items with "
+                f"{total_stock:,} total units in stock. Ask me about low stock, top sellers, or inventory health!")
+
+    if any(w in msg for w in ["low stock", "running low", "restock", "replenish", "shortage"]):
+        if low_stock:
+            names = ", ".join(i["name"] for i in low_stock[:5])
+            return f"⚠️ {len(low_stock)} item(s) are low on stock: {names}. Recommend placing restock orders immediately."
+        return "✅ All items are above the low-stock threshold (>10 units). Inventory looks healthy!"
+
+    if any(w in msg for w in ["out of stock", "zero", "empty", "critical"]):
+        if out_of_stock:
+            names = ", ".join(i["name"] for i in out_of_stock[:5])
+            return f"🚨 Critical: {len(out_of_stock)} item(s) are completely out of stock: {names}. Urgent restocking required!"
+        return "✅ No items are out of stock. All SKUs have inventory available."
+
+    if any(w in msg for w in ["top seller", "best seller", "most sold", "highest sales"]):
+        if top_seller and top_seller.get("sales", 0) > 0:
+            return (f"📈 Top seller is '{top_seller['name']}' with {top_seller['sales']:,} units sold. "
+                    f"Ensure sufficient stock levels to meet demand.")
+        return "No sales data recorded yet. Add sales figures to your inventory items for insights."
+
+    if any(w in msg for w in ["summary", "overview", "status", "health", "report"]):
+        health = "🟢 Healthy" if not out_of_stock and len(low_stock) <= 2 else "🟡 Needs Attention" if not out_of_stock else "🔴 Critical"
+        return (f"📊 Inventory Summary — {health}\n"
+                f"• {total_items} SKUs | {total_stock:,} units | {total_sales:,} sales\n"
+                f"• {len(out_of_stock)} out of stock | {len(low_stock)} low stock\n"
+                f"• Top seller: {top_seller['name'] if top_seller else 'N/A'}")
+
+    if any(w in msg for w in ["how many", "count", "total", "quantity", "units"]):
+        return (f"You have {total_items} registered items with {total_stock:,} total units across all locations. "
+                f"Total recorded sales: {total_sales:,} units.")
+
+    if any(w in msg for w in ["most stock", "highest", "largest"]):
+        if most_stock:
+            return f"'{most_stock['name']}' has the highest stock with {most_stock['count']:,} units at {most_stock.get('location', 'N/A')}."
+
+    return (f"Based on your inventory: {total_items} items, {total_stock:,} total units, "
+            f"{len(low_stock)} low-stock alerts. "
+            f"Try asking about 'low stock', 'top seller', 'out of stock', or 'summary' for detailed insights.")
+
+
 @app.post("/api/chat")
 async def chat_assistant(request: ChatRequest):
-    if not client:
-        return {"reply": "AI is currently offline. Please check API configuration."}
-        
-    inventory_context = json.dumps([item.dict() for item in request.inventory_data])
-    
-    prompt = f"""
+    inventory_data = [item.dict() for item in request.inventory_data]
+
+    if client:
+        inventory_context = json.dumps(inventory_data)
+        prompt = f"""
     You are 'ChainHandler AI', a professional Supply Chain Assistant.
     Answer the user's query based on the following current inventory data:
     {inventory_context}
-    
+
     User Query: {request.message}
-    
-    Provide a concise, actionable, and professional response. Keep it brief (under 100 words if possible) and highly relevant to the data provided. Use plain text or basic formatting.
+
+    Provide a concise, actionable, and professional response. Keep it brief (under 100 words if possible). Use plain text.
     """
-    
-    models_to_try = [
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash-8b",
-        "gemini-2.0-flash",
-    ]
-    
-    for model_name in models_to_try:
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=prompt
-            )
-            return {"reply": response.text.strip()}
-        except Exception as e:
-            err_str = str(e)
-            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                continue
-            else:
+        models_to_try = ["gemini-2.0-flash-lite", "gemini-1.5-flash-8b", "gemini-2.0-flash"]
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content(model=model_name, contents=prompt)
+                return {"reply": response.text.strip()}
+            except Exception as e:
+                err_str = str(e)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    continue
                 print(f"Chat error with {model_name}: {err_str}")
                 break
-                
-    return {"reply": "I'm currently receiving too many requests due to free-tier limits. Please try again in a moment."}
+
+    # Smart local fallback — works without API or when rate-limited
+    return {"reply": compute_chat_fallback(request.message, inventory_data)}
+
