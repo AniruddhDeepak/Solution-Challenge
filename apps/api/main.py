@@ -1,5 +1,6 @@
 import os
 import json
+import asyncio
 from typing import List, Optional
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -278,18 +279,27 @@ async def chat_assistant(request: ChatRequest):
 
     Provide a concise, actionable, and professional response. Keep it brief (under 100 words if possible). Use plain text.
     """
+        # Try each model with exponential backoff retries (handles free-tier RPM limits)
         models_to_try = ["gemini-2.0-flash-lite", "gemini-1.5-flash-8b", "gemini-2.0-flash"]
         for model_name in models_to_try:
-            try:
-                response = client.models.generate_content(model=model_name, contents=prompt)
-                return {"reply": response.text.strip()}
-            except Exception as e:
-                err_str = str(e)
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    continue
-                print(f"Chat error with {model_name}: {err_str}")
-                break
+            for attempt in range(3):  # retry each model up to 3 times
+                try:
+                    response = client.models.generate_content(model=model_name, contents=prompt)
+                    return {"reply": response.text.strip()}
+                except Exception as e:
+                    err_str = str(e)
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        wait = 2 ** attempt  # 1s, 2s, 4s
+                        print(f"Rate limited on {model_name} (attempt {attempt+1}), retrying in {wait}s...")
+                        await asyncio.sleep(wait)
+                        continue
+                    # Non-rate-limit error — skip to next model immediately
+                    print(f"Chat error with {model_name}: {err_str}")
+                    break
+            else:
+                # All 3 retries exhausted for this model, try next model
+                continue
+            break
 
-    # Smart local fallback — works without API or when rate-limited
+    # Smart local fallback — only reached if all models + retries fail
     return {"reply": compute_chat_fallback(request.message, inventory_data)}
-
