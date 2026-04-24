@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
@@ -21,8 +21,85 @@ export default function App({ user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInventory, setSelectedInventory] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationsRef = useRef(null);
 
   const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, deleteItem } = useInventory();
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const notifications = useMemo(() => {
+    const alerts = [];
+    
+    // Out of stock items
+    const outOfStockItems = inventoryItems.filter(item => Number(item.count) === 0);
+    if (outOfStockItems.length > 0) {
+      alerts.push({
+        id: 'out-of-stock',
+        title: 'Critical: Out of Stock',
+        message: `${outOfStockItems.map(i => i.name).join(', ')} are completely out of stock!`,
+        icon: AlertTriangle,
+        color: 'text-red-600',
+        bg: 'bg-red-50',
+        time: 'Just now'
+      });
+    }
+
+    // Low stock items
+    const lowStockItems = inventoryItems.filter(item => Number(item.count) > 0 && Number(item.count) <= 10);
+    if (lowStockItems.length > 0) {
+      alerts.push({
+        id: 'low-stock',
+        title: 'Low Inventory Alert',
+        message: `${lowStockItems.length} items (${lowStockItems.map(i => i.name).join(', ')}) are running low on stock.`,
+        icon: Box,
+        color: 'text-amber-500',
+        bg: 'bg-amber-50',
+        time: 'Recently'
+      });
+    }
+
+    // Data analysis: sales outpacing inventory
+    const restockItems = inventoryItems.filter(item => {
+      const sales = item.sales ? Number(item.sales) : 0;
+      return sales > 0 && sales >= Number(item.count);
+    });
+
+    if (restockItems.length > 0) {
+      alerts.push({
+        id: 'restock-analysis',
+        title: 'Restock Recommendation',
+        message: `Based on sales velocity, ${restockItems.map(i => i.name).join(', ')} require restocking to prevent shortages.`,
+        icon: TrendingUp,
+        color: 'text-blue-500',
+        bg: 'bg-blue-50',
+        time: 'System Analysis'
+      });
+    }
+
+    if (alerts.length === 0) {
+      alerts.push({
+        id: 'all-clear',
+        title: 'All Systems Normal',
+        message: 'No critical alerts or warnings at this time.',
+        icon: CheckCircle2,
+        color: 'text-emerald-600',
+        bg: 'bg-emerald-50',
+        time: 'Updated just now'
+      });
+    }
+
+    return alerts;
+  }, [inventoryItems]);
 
   const networkTraffic = Array.from({ length: 20 }, (_, i) => ({ 
     time: `${i}:00`, 
@@ -148,10 +225,53 @@ export default function App({ user }) {
             />
           </div>
           <div className="flex items-center space-x-6">
-            <motion.button whileHover={{ scale: 1.1, rotate: 10 }} whileTap={{ scale: 0.9 }} className="relative p-3 bg-white hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded-xl shadow-sm border border-gray-100 transition-colors">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-            </motion.button>
+            <div className="relative" ref={notificationsRef}>
+              <motion.button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                whileHover={{ scale: 1.1, rotate: 10 }} 
+                whileTap={{ scale: 0.9 }} 
+                className="relative p-3 bg-white hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded-xl shadow-sm border border-gray-100 transition-colors"
+              >
+                <Bell className="w-6 h-6" />
+                {notifications.some(n => n.id !== 'all-clear') && (
+                  <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                )}
+              </motion.button>
+              
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden z-50"
+                  >
+                    <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                      <h3 className="font-bold text-gray-800">Notifications</h3>
+                      <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg">
+                        {notifications.filter(n => n.id !== 'all-clear').length} New
+                      </span>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto p-2">
+                      {notifications.map(notification => (
+                        <div key={notification.id} className="p-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer mb-1 last:mb-0">
+                          <div className="flex items-start">
+                            <div className={`p-2 rounded-xl ${notification.bg} mr-3 shrink-0`}>
+                              <notification.icon className={`w-4 h-4 ${notification.color}`} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-800 leading-tight">{notification.title}</p>
+                              <p className="text-xs text-gray-500 mt-1 font-medium">{notification.message}</p>
+                              <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-wider">{notification.time}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <div className="h-10 w-px bg-gray-200"></div>
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center space-x-4 cursor-pointer bg-white p-2 rounded-2xl shadow-sm border border-gray-100 px-4">
               <img src={user?.photoURL || 'https://i.pravatar.cc/150?img=47'} alt="Profile" className="w-10 h-10 rounded-xl border border-gray-100" />
