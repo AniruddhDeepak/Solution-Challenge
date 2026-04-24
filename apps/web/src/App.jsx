@@ -1,15 +1,19 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { useInventory } from './hooks/useInventory';
+import { useWarehouses } from './hooks/useWarehouses';
+import { useShipments } from './hooks/useShipments';
 import AddItemModal from './AddItemModal';
+import AddWarehouseModal from './AddWarehouseModal';
 import DataAnalyzer from './DataAnalyzer';
 import { 
   BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
   ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2,
-  Download, X, ClipboardList, Layers, ChevronDown, Cpu, Flame, Wrench, Car, HelpCircle, Package, Filter
+  Download, X, ClipboardList, Layers, ChevronDown, Cpu, Flame, Wrench, Car, HelpCircle, Package, Filter,
+  Target, MessageCircle, Send, Bot, Clock, PackageCheck
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -22,15 +26,22 @@ export default function App({ user }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInventory, setSelectedInventory] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showWarehouseModal, setShowWarehouseModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('All');
   const [inventorySearchQuery, setInventorySearchQuery] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([{ role: 'ai', text: 'Hi! I am your ChainHandler AI assistant. How can I help you optimize your supply chain today?' }]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const notificationsRef = useRef(null);
   const searchRef = useRef(null);
 
   const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, deleteItem } = useInventory();
+  const { warehouses, loading: whLoading, addWarehouse, deleteWarehouse } = useWarehouses();
+  const { shipments, loading: shipLoading, addShipment, updateShipmentStatus } = useShipments();
 
   // Close notifications and search dropdown when clicking outside
   useEffect(() => {
@@ -128,11 +139,34 @@ export default function App({ user }) {
     setHealthStatus('healthy');
   }, []);
 
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput;
+    setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setChatInput('');
+    setIsChatLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg, inventory_data: inventoryItems })
+      });
+      const data = await response.json();
+      setChatMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: 'ai', text: 'Sorry, I am having trouble connecting to the network right now.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   const navItems = [
     { id: 'dashboard', icon: Activity, label: 'Control Center' },
     { id: 'inventory', icon: Box, label: 'Inventory Grid' },
+    { id: 'network', icon: Map, label: 'Warehouses' },
     { id: 'analytics', icon: BarChart3, label: 'Data Analytics' },
-    { id: 'system', icon: Terminal, label: 'System Terminal' }
+    { id: 'shipments', icon: Truck, label: 'Active Shipments' }
   ];
 
   const searchResults = useMemo(() => {
@@ -916,6 +950,50 @@ export default function App({ user }) {
               />
             )}
 
+            {/* GLOBAL NETWORK TAB */}
+            {activeTab === 'network' && (
+              <motion.div key="network" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto space-y-8">
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tight">Warehouses</h2>
+                    <p className="text-gray-500 font-medium mt-2">Manage physical infrastructure across your Tier 2 and Tier 3 network.</p>
+                  </div>
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowWarehouseModal(true)} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all flex items-center">
+                    <Globe className="mr-2 w-5 h-5" /> Add Regional Warehouse
+                  </motion.button>
+                </div>
+                {whLoading ? (
+                  <div className="flex items-center justify-center py-24"><Loader2 className="w-10 h-10 text-blue-500 animate-spin" /><span className="ml-3 text-gray-500 font-semibold">Syncing network nodes...</span></div>
+                ) : warehouses.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-3xl border border-gray-100 shadow-sm">
+                    <Map className="w-16 h-16 text-gray-300 mb-4" />
+                    <h3 className="text-xl font-bold text-gray-400">No active nodes</h3>
+                    <p className="text-gray-400 mt-2">Click "Add Regional Warehouse" to expand your supply network.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {warehouses.map((wh) => (
+                      <motion.div key={wh.id} variants={popIn} whileHover={{ y: -8 }} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:shadow-xl hover:border-blue-200 transition-all flex flex-col justify-between">
+                        <div className="flex justify-between items-start mb-6">
+                          <div>
+                            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4"><Map className="w-6 h-6 text-blue-600" /></div>
+                            <h3 className="text-2xl font-bold text-gray-900 leading-tight">{wh.name}</h3>
+                            <p className="text-sm font-semibold text-gray-500 mt-1 flex items-center"><Globe className="w-4 h-4 mr-1" /> {wh.region}</p>
+                          </div>
+                          <button onClick={() => deleteWarehouse(wh.id)} className="p-2 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-xl transition-colors"><Trash2 className="w-5 h-5" /></button>
+                        </div>
+                        <div className="pt-4 border-t border-gray-50 flex justify-between items-end">
+                          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Max Capacity</span>
+                          <span className="text-3xl font-black text-blue-600">{Number(wh.capacity).toLocaleString()}</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+            {showWarehouseModal && <AddWarehouseModal onClose={() => setShowWarehouseModal(false)} onAdd={addWarehouse} />}
+
             {/* ANALYTICS TAB */}
             {activeTab === 'analytics' && (
               <motion.div key="analytics" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto">
@@ -923,32 +1001,80 @@ export default function App({ user }) {
               </motion.div>
             )}
 
-            {/* SYSTEM TERMINAL TAB */}
-            {activeTab === 'system' && (
-              <motion.div key="system" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto h-[70vh] bg-gray-900 rounded-3xl p-8 border border-emerald-600 shadow-xl overflow-hidden flex flex-col font-mono relative">
-                 <div className="flex items-center text-emerald-500 mb-6 border-b border-emerald-600/30 pb-4">
-                    <Terminal className="w-5 h-5 mr-3" />
-                    <h2 className="text-xl font-bold tracking-widest uppercase">Admin System Terminal</h2>
-                 </div>
-                 <div className="flex-1 overflow-y-auto space-y-4 pr-4 custom-scrollbar text-base">
-                    {/* Reuse the 'logs' array from the effect */}
-                    {emissionsData && [
-                      { time: '10:00:00 AM', msg: 'System initialized. Monitoring global nodes.', type: 'info' },
-                      { time: '10:01:23 AM', msg: 'Warehouse D successfully connected.', type: 'info' },
-                      { time: '11:42:15 AM', msg: 'Freight path updated for fuel efficiency.', type: 'info' },
-                      { time: '01:15:20 PM', msg: 'Lithium batteries below threshold in Sector C.', type: 'warn' },
-                      { time: '02:00:45 PM', msg: 'Order #8922 reached destination.', type: 'success' },
-                    ].map((log, i) => (
-                       <div key={i} className="text-gray-300">
-                          <span className="text-emerald-500 font-bold mr-4">[{log.time}]</span>
-                          {log.msg}
-                       </div>
-                    ))}
-                    <div className="text-emerald-400 flex items-center mt-4 pt-4 border-t border-emerald-600/30">
-                       <span className="mr-2">&gt;</span> cmdr@chainhandler:~#
-                       <span className="w-2.5 h-5 ml-2 bg-emerald-400 animate-[pulse_1s_ease-in-out_infinite]"></span>
+            {/* ACTIVE SHIPMENTS TAB */}
+            {activeTab === 'shipments' && (
+              <motion.div key="shipments" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto space-y-8">
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tight">Active Shipments</h2>
+                    <p className="text-gray-500 font-medium mt-2">Track real-time logistics and dispatch status across your zones.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-bold text-gray-700 flex items-center"><Clock className="w-5 h-5 mr-2 text-amber-500" /> Pending Dispatch</h3>
+                      <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full">{shipments.filter(s => s.status === 'pending').length}</span>
                     </div>
-                 </div>
+                    <div className="space-y-4">
+                      {shipments.filter(s => s.status === 'pending').map(s => (
+                        <motion.div key={s.id} layoutId={s.id} className="relative bg-white p-5 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-amber-400 to-amber-500"></div>
+                          <div className="pl-2">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-black text-gray-900">{s.itemName}</h4>
+                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
+                            <button onClick={() => updateShipmentStatus(s.id, 'transit')} className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-sm transition-all border border-blue-200/50">Dispatch Shipment</button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-bold text-gray-700 flex items-center"><Truck className="w-5 h-5 mr-2 text-blue-500" /> In Transit</h3>
+                      <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">{shipments.filter(s => s.status === 'transit').length}</span>
+                    </div>
+                    <div className="space-y-4">
+                      {shipments.filter(s => s.status === 'transit').map(s => (
+                        <motion.div key={s.id} layoutId={s.id} className="relative bg-white p-5 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
+                          <div className="pl-2">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-black text-gray-900">{s.itemName}</h4>
+                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
+                            <button onClick={() => updateShipmentStatus(s.id, 'delivered')} className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-sm transition-all border border-emerald-200/50">Mark Delivered</button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="font-bold text-gray-700 flex items-center"><PackageCheck className="w-5 h-5 mr-2 text-emerald-500" /> Delivered</h3>
+                      <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">{shipments.filter(s => s.status === 'delivered').length}</span>
+                    </div>
+                    <div className="space-y-4">
+                      {shipments.filter(s => s.status === 'delivered').map(s => (
+                        <motion.div key={s.id} layoutId={s.id} className="relative bg-white p-5 rounded-2xl shadow-sm border border-gray-100 opacity-80 overflow-hidden">
+                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
+                          <div className="pl-2">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-black text-gray-900 line-through decoration-emerald-300">{s.itemName}</h4>
+                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-500 mb-3">{s.origin} → {s.destination}</p>
+                            <div className="w-full py-2 text-emerald-600 font-black text-xs text-center flex items-center justify-center border-t border-emerald-50 pt-3"><CheckCircle2 className="w-4 h-4 mr-1" /> Delivery Confirmed</div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             )}
 
@@ -1111,6 +1237,45 @@ export default function App({ user }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Floating AI Chat Widget */}
+      <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end">
+        <AnimatePresence>
+          {isChatOpen && (
+            <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 20, scale: 0.9 }} className="bg-white w-80 sm:w-96 rounded-3xl shadow-2xl mb-4 border border-emerald-100 overflow-hidden flex flex-col h-[500px]">
+              <div className="bg-emerald-600 p-4 text-white flex justify-between items-center">
+                <div className="flex items-center space-x-2"><Bot className="w-6 h-6 text-emerald-100" /><h3 className="font-bold">ChainHandler AI</h3></div>
+                <button onClick={() => setIsChatOpen(false)} className="text-emerald-200 hover:text-white transition"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-4">
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-white border border-gray-100 shadow-sm text-gray-800 rounded-bl-none'}`}>{msg.text}</div>
+                  </div>
+                ))}
+                {isChatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-gray-100 shadow-sm p-3 rounded-2xl rounded-bl-none flex space-x-1">
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-75"></div>
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-150"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="p-4 bg-white border-t border-gray-100">
+                <form onSubmit={handleSendMessage} className="flex space-x-2">
+                  <input type="text" placeholder="Ask about inventory..." className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500" value={chatInput} onChange={(e) => setChatInput(e.target.value)} />
+                  <button type="submit" disabled={isChatLoading || !chatInput.trim()} className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white p-2 rounded-xl transition flex items-center justify-center shrink-0"><Send className="w-5 h-5" /></button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsChatOpen(!isChatOpen)} className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-colors duration-300 ${isChatOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+          {isChatOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}
+        </motion.button>
+      </div>
 
     </div>
   );
