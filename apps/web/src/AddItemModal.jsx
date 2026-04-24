@@ -1,31 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Box, MapPin, Package, Tag, Activity } from 'lucide-react';
+import { X, Box, MapPin, Package, Tag, Activity, Globe, Building2, Map, Plus, Layers } from 'lucide-react';
 
-const LOCATIONS = ['Warehouse A', 'Warehouse B', 'Warehouse C', 'Warehouse D'];
+const DEFAULT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
 const STATUSES = ['In Stock', 'In Transit', 'Low Stock'];
-const PRODUCT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
 
-export default function AddItemModal({ onClose, onAdd }) {
+export default function AddItemModal({ onClose, onAdd, existingCategories = [] }) {
+  // Merge default types with any custom categories from existing inventory
+  const allCategories = useMemo(() => {
+    const merged = new Set([...DEFAULT_TYPES, ...existingCategories]);
+    return [...merged];
+  }, [existingCategories]);
+
   const [form, setForm] = useState({
     name: '',
-    location: 'Warehouse A',
+    country: '',
+    district: '',
+    city: '',
     status: 'In Stock',
     count: '',
-    type: 'Electronics',
+    type: allCategories[0] || 'Electronics',
     sales: '',
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Item name is required';
+    if (!form.country.trim()) e.country = 'Country is required';
+    if (!form.city.trim()) e.city = 'City is required';
     if (!form.count || isNaN(form.count) || Number(form.count) < 0)
       e.count = 'Enter a valid quantity';
     if (!form.sales || isNaN(form.sales) || Number(form.sales) < 0)
       e.sales = 'Enter valid monthly sales';
+    if (showNewCategory && !newCategoryName.trim())
+      e.newCategory = 'Enter a category name';
     return e;
+  };
+
+  const handleTypeChange = (value) => {
+    if (value === '__new__') {
+      setShowNewCategory(true);
+      setForm({ ...form, type: '' });
+    } else {
+      setShowNewCategory(false);
+      setNewCategoryName('');
+      setForm({ ...form, type: value });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -34,7 +58,26 @@ export default function AddItemModal({ onClose, onAdd }) {
     if (Object.keys(e2).length > 0) { setErrors(e2); return; }
     setSaving(true);
     try {
-      await onAdd({ ...form, count: Number(form.count), sales: Number(form.sales) });
+      // Build location string from country/district/city
+      const locationParts = [form.city.trim()];
+      if (form.district.trim()) locationParts.push(form.district.trim());
+      locationParts.push(form.country.trim());
+      const location = locationParts.join(', ');
+
+      // Determine final type
+      const finalType = showNewCategory ? newCategoryName.trim() : form.type;
+
+      await onAdd({
+        name: form.name,
+        location,
+        country: form.country.trim(),
+        district: form.district.trim(),
+        city: form.city.trim(),
+        status: form.status,
+        count: Number(form.count),
+        type: finalType,
+        sales: Number(form.sales),
+      });
       onClose();
     } catch (err) {
       console.error(err);
@@ -57,10 +100,10 @@ export default function AddItemModal({ onClose, onAdd }) {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-          className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 relative"
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-8 relative"
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
               <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mr-3">
                 <Box className="w-5 h-5 text-emerald-600" />
@@ -78,10 +121,10 @@ export default function AddItemModal({ onClose, onAdd }) {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Item Name */}
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
                 <Tag className="w-4 h-4 inline mr-1 text-emerald-500" /> Item Name
               </label>
               <input
@@ -96,24 +139,61 @@ export default function AddItemModal({ onClose, onAdd }) {
               {errors.name && <p className="text-red-500 text-xs font-semibold mt-1">{errors.name}</p>}
             </div>
 
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-1 text-emerald-500" /> Warehouse Location
+            {/* Location Section */}
+            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+              <label className="block text-sm font-bold text-gray-700 mb-3">
+                <MapPin className="w-4 h-4 inline mr-1 text-emerald-500" /> Location Details
               </label>
-              <select
-                value={form.location}
-                onChange={(e) => setForm({ ...form, location: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
-              >
-                {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    <Globe className="w-3 h-3 inline mr-0.5" /> Country *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. India"
+                    value={form.country}
+                    onChange={(e) => setForm({ ...form, country: e.target.value })}
+                    className={`w-full px-3 py-2.5 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                      errors.country ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400 bg-white'
+                    }`}
+                  />
+                  {errors.country && <p className="text-red-500 text-xs font-semibold mt-1">{errors.country}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    <Map className="w-3 h-3 inline mr-0.5" /> District
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bengaluru Urban"
+                    value={form.district}
+                    onChange={(e) => setForm({ ...form, district: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    <Building2 className="w-3 h-3 inline mr-0.5" /> City *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bengaluru"
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                    className={`w-full px-3 py-2.5 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                      errors.city ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400 bg-white'
+                    }`}
+                  />
+                  {errors.city && <p className="text-red-500 text-xs font-semibold mt-1">{errors.city}</p>}
+                </div>
+              </div>
             </div>
 
             {/* Status & Quantity row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1.5">Status</label>
                 <select
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
@@ -123,7 +203,7 @@ export default function AddItemModal({ onClose, onAdd }) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-gray-700 mb-1.5">
                   <Package className="w-4 h-4 inline mr-1 text-emerald-500" /> Quantity
                 </label>
                 <input
@@ -140,34 +220,67 @@ export default function AddItemModal({ onClose, onAdd }) {
               </div>
             </div>
 
-            {/* Type & Sales row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Product Type</label>
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
-                >
-                  {PRODUCT_TYPES.map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  <Activity className="w-4 h-4 inline mr-1 text-emerald-500" /> Monthly Sales
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="e.g. 150"
-                  value={form.sales}
-                  onChange={(e) => setForm({ ...form, sales: e.target.value })}
-                  className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
-                    errors.sales ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400'
-                  }`}
-                />
-                {errors.sales && <p className="text-red-500 text-xs font-semibold mt-1">{errors.sales}</p>}
-              </div>
+            {/* Product Type with Create New option */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                <Layers className="w-4 h-4 inline mr-1 text-emerald-500" /> Product Category
+              </label>
+              {!showNewCategory ? (
+                <div className="flex gap-2">
+                  <select
+                    value={form.type}
+                    onChange={(e) => handleTypeChange(e.target.value)}
+                    className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
+                  >
+                    {allCategories.map((t) => <option key={t} value={t}>{t}</option>)}
+                    <option value="__new__">+ Create New Category</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter new category name..."
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className={`flex-1 px-4 py-3 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                      errors.newCategory ? 'border-red-300 bg-red-50' : 'border-emerald-300 focus:border-emerald-400 bg-emerald-50/30'
+                    }`}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setShowNewCategory(false); setNewCategoryName(''); setForm({ ...form, type: allCategories[0] }); }}
+                    className="px-3 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors text-sm font-bold"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {errors.newCategory && <p className="text-red-500 text-xs font-semibold mt-1">{errors.newCategory}</p>}
+              {showNewCategory && (
+                <p className="text-xs text-emerald-600 font-medium mt-1.5">
+                  <Plus className="w-3 h-3 inline mr-0.5" /> This will create a new product category
+                </p>
+              )}
+            </div>
+
+            {/* Monthly Sales */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                <Activity className="w-4 h-4 inline mr-1 text-emerald-500" /> Monthly Sales
+              </label>
+              <input
+                type="number"
+                min="0"
+                placeholder="e.g. 150"
+                value={form.sales}
+                onChange={(e) => setForm({ ...form, sales: e.target.value })}
+                className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                  errors.sales ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400'
+                }`}
+              />
+              {errors.sales && <p className="text-red-500 text-xs font-semibold mt-1">{errors.sales}</p>}
             </div>
 
             {/* Submit */}

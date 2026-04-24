@@ -8,7 +8,8 @@ import DataAnalyzer from './DataAnalyzer';
 import { 
   BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
-  ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2
+  ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2,
+  Download, X, ClipboardList, Layers, ChevronDown, Cpu, Flame, Wrench, Car, HelpCircle, Package, Filter
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -22,15 +23,23 @@ export default function App({ user }) {
   const [selectedInventory, setSelectedInventory] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('All');
+  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
   const notificationsRef = useRef(null);
+  const searchRef = useRef(null);
 
   const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, deleteItem } = useInventory();
 
-  // Close notifications when clicking outside
+  // Close notifications and search dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
         setShowNotifications(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSearchResults(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -126,6 +135,176 @@ export default function App({ user }) {
     { id: 'system', icon: Terminal, label: 'System Terminal' }
   ];
 
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const query = searchQuery.toLowerCase();
+    const results = { navigation: [], actions: [], inventory: [] };
+
+    navItems.forEach(item => {
+      if (item.label.toLowerCase().includes(query) || item.id.toLowerCase().includes(query)) results.navigation.push(item);
+    });
+
+    if ('register new item add inventory'.includes(query)) {
+      results.actions.push({ id: 'add-item', label: 'Register New Item', icon: Box, action: () => setShowModal(true) });
+    }
+    if ('generate report analytics'.includes(query)) {
+      results.actions.push({ id: 'gen-report', label: 'Generate Report', icon: TrendingUp, action: () => generateReport() });
+    }
+
+    inventoryItems.forEach(item => {
+      if (item.name.toLowerCase().includes(query) || item.location.toLowerCase().includes(query) || item.id.toLowerCase().includes(query)) {
+        results.inventory.push(item);
+      }
+    });
+
+    return results;
+  }, [searchQuery, inventoryItems]);
+
+  const handleSearchResultClick = (type, item) => {
+    if (type === 'navigation') {
+      setActiveTab(item.id);
+    } else if (type === 'action') {
+      item.action();
+    } else if (type === 'inventory') {
+      setActiveTab('inventory');
+      setTimeout(() => setSelectedInventory(item), 100);
+    }
+    setSearchQuery('');
+    setShowSearchResults(false);
+  };
+
+  // Category config with icons and colors
+  const CATEGORY_CONFIG = {
+    'Electronics': { icon: Cpu, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', activeBg: 'bg-blue-600' },
+    'Raw Materials': { icon: Flame, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', activeBg: 'bg-orange-600' },
+    'Consumables': { icon: Package, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200', activeBg: 'bg-pink-600' },
+    'Hardware': { icon: Wrench, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200', activeBg: 'bg-slate-600' },
+    'Automotive': { icon: Car, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200', activeBg: 'bg-violet-600' },
+    'Other': { icon: HelpCircle, color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200', activeBg: 'bg-gray-600' },
+  };
+
+  // Default config for dynamically created categories
+  const getCategoryConfig = (category) => CATEGORY_CONFIG[category] || {
+    icon: Layers, color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', activeBg: 'bg-teal-600'
+  };
+
+  // Collect all unique categories from existing inventory
+  const existingCategories = useMemo(() => {
+    const cats = new Set();
+    inventoryItems.forEach(item => {
+      if (item.type) cats.add(item.type);
+    });
+    return [...cats];
+  }, [inventoryItems]);
+
+  // Group inventory by category (type)
+  const groupedInventory = useMemo(() => {
+    const groups = {};
+    inventoryItems.forEach(item => {
+      const type = item.type || 'Other';
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(item);
+    });
+    // Sort categories alphabetically, but keep 'Other' last
+    const sorted = Object.keys(groups).sort((a, b) => {
+      if (a === 'Other') return 1;
+      if (b === 'Other') return -1;
+      return a.localeCompare(b);
+    });
+    return sorted.map(key => ({ category: key, items: groups[key] }));
+  }, [inventoryItems]);
+
+  const categoryStats = useMemo(() => {
+    return groupedInventory.map(g => ({
+      category: g.category,
+      count: g.items.length,
+      totalUnits: g.items.reduce((s, i) => s + Number(i.count || 0), 0),
+    }));
+  }, [groupedInventory]);
+
+  // Generate Report logic
+  const generateReport = () => {
+    setShowReport(true);
+  };
+
+  const reportData = useMemo(() => {
+    const totalItems = inventoryItems.length;
+    const totalUnits = inventoryItems.reduce((sum, i) => sum + Number(i.count || 0), 0);
+    const totalSales = inventoryItems.reduce((sum, i) => sum + Number(i.sales || 0), 0);
+    const outOfStock = inventoryItems.filter(i => Number(i.count) === 0);
+    const lowStock = inventoryItems.filter(i => Number(i.count) > 0 && Number(i.count) <= 10);
+    const healthyStock = inventoryItems.filter(i => Number(i.count) > 10);
+    const locationMap = {};
+    inventoryItems.forEach(i => {
+      locationMap[i.location] = (locationMap[i.location] || 0) + 1;
+    });
+    const topLocations = Object.entries(locationMap).sort((a, b) => b[1] - a[1]);
+    return { totalItems, totalUnits, totalSales, outOfStock, lowStock, healthyStock, topLocations };
+  }, [inventoryItems]);
+
+  const downloadReport = () => {
+    const now = new Date();
+    const lines = [
+      '═══════════════════════════════════════════════════════════',
+      '           CHAINHANDLER — SUPPLY CHAIN REPORT',
+      '═══════════════════════════════════════════════════════════',
+      `  Generated: ${now.toLocaleString()}`,
+      `  Prepared for: ${user?.displayName || 'Admin'}`,
+      '',
+      '───────────────────────────────────────────────────────────',
+      '  EXECUTIVE SUMMARY',
+      '───────────────────────────────────────────────────────────',
+      `  Total Registered Items:  ${reportData.totalItems}`,
+      `  Total Units in Stock:    ${reportData.totalUnits.toLocaleString()}`,
+      `  Total Sales Recorded:    ${reportData.totalSales.toLocaleString()}`,
+      `  Healthy Stock Items:     ${reportData.healthyStock.length}`,
+      `  Low Stock Warnings:      ${reportData.lowStock.length}`,
+      `  Out of Stock (Critical): ${reportData.outOfStock.length}`,
+      '',
+      '───────────────────────────────────────────────────────────',
+      '  INVENTORY BREAKDOWN',
+      '───────────────────────────────────────────────────────────',
+    ];
+    inventoryItems.forEach((item, idx) => {
+      lines.push(`  ${idx + 1}. ${item.name}`);
+      lines.push(`     Location: ${item.location}  |  Qty: ${item.count}  |  Sales: ${item.sales || 0}  |  Status: ${item.status}`);
+    });
+    if (reportData.topLocations.length > 0) {
+      lines.push('');
+      lines.push('───────────────────────────────────────────────────────────');
+      lines.push('  ITEMS BY LOCATION');
+      lines.push('───────────────────────────────────────────────────────────');
+      reportData.topLocations.forEach(([loc, count]) => {
+        lines.push(`  ${loc}: ${count} item(s)`);
+      });
+    }
+    if (reportData.outOfStock.length > 0) {
+      lines.push('');
+      lines.push('───────────────────────────────────────────────────────────');
+      lines.push('  ⚠ CRITICAL: OUT OF STOCK');
+      lines.push('───────────────────────────────────────────────────────────');
+      reportData.outOfStock.forEach(i => lines.push(`  • ${i.name} — ${i.location}`));
+    }
+    if (reportData.lowStock.length > 0) {
+      lines.push('');
+      lines.push('───────────────────────────────────────────────────────────');
+      lines.push('  ⚠ WARNING: LOW STOCK');
+      lines.push('───────────────────────────────────────────────────────────');
+      reportData.lowStock.forEach(i => lines.push(`  • ${i.name} (${i.count} remaining) — ${i.location}`));
+    }
+    lines.push('');
+    lines.push('═══════════════════════════════════════════════════════════');
+    lines.push('                    END OF REPORT');
+    lines.push('═══════════════════════════════════════════════════════════');
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ChainHandler_Report_${now.toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
 
 
   // Animation variants
@@ -213,16 +392,71 @@ export default function App({ user }) {
         <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-emerald-100/30 rounded-full blur-[80px] pointer-events-none"></div>
 
         {/* Top Header */}
-        <header className="h-24 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-10 z-10 shrink-0 shadow-sm">
-          <div className="flex items-center w-full max-w-xl relative group">
+        <header className="relative h-24 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-10 z-50 shrink-0 shadow-sm">
+          <div className="flex items-center w-full max-w-xl relative group" ref={searchRef}>
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-emerald-500 w-5 h-5 group-hover:scale-110 transition-transform" />
             <input 
               type="text" 
               placeholder="Search active shipments, warehouse nodes, or reports..." 
               className="w-full pl-12 pr-6 py-3.5 bg-gray-50 border-none rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500/20 text-gray-700 transition-all shadow-inner placeholder-gray-400"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(true);
+              }}
+              onFocus={() => setShowSearchResults(true)}
             />
+
+            {/* Search Dropdown */}
+            <AnimatePresence>
+              {showSearchResults && searchResults && (searchResults.navigation.length > 0 || searchResults.actions.length > 0 || searchResults.inventory.length > 0) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50 max-h-[400px] overflow-y-auto"
+                >
+                  {searchResults.navigation.length > 0 && (
+                    <div className="p-2 border-b border-gray-100 last:border-0">
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2">Navigation</div>
+                      {searchResults.navigation.map(item => (
+                        <div key={item.id} onClick={() => handleSearchResultClick('navigation', item)} className="flex items-center px-3 py-2.5 hover:bg-emerald-50 rounded-xl cursor-pointer group/item transition-colors">
+                          <item.icon className="w-5 h-5 text-gray-400 group-hover/item:text-emerald-600 mr-3" />
+                          <span className="font-bold text-gray-700 group-hover/item:text-emerald-700">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {searchResults.actions.length > 0 && (
+                    <div className="p-2 border-b border-gray-100 last:border-0">
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2">Quick Actions</div>
+                      {searchResults.actions.map(item => (
+                        <div key={item.id} onClick={() => handleSearchResultClick('action', item)} className="flex items-center px-3 py-2.5 hover:bg-emerald-50 rounded-xl cursor-pointer group/item transition-colors">
+                          <item.icon className="w-5 h-5 text-gray-400 group-hover/item:text-emerald-600 mr-3" />
+                          <span className="font-bold text-gray-700 group-hover/item:text-emerald-700">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {searchResults.inventory.length > 0 && (
+                    <div className="p-2">
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2">Inventory Items</div>
+                      {searchResults.inventory.map(item => (
+                        <div key={item.id} onClick={() => handleSearchResultClick('inventory', item)} className="flex items-center px-3 py-2.5 hover:bg-emerald-50 rounded-xl cursor-pointer group/item transition-colors">
+                          <Box className="w-5 h-5 text-gray-400 group-hover/item:text-emerald-600 mr-3" />
+                          <div>
+                            <p className="font-bold text-gray-700 group-hover/item:text-emerald-700">{item.name}</p>
+                            <p className="text-xs text-gray-500 font-medium">Loc: {item.location} • Qty: {item.count}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <div className="flex items-center space-x-6">
             <div className="relative" ref={notificationsRef}>
@@ -244,7 +478,7 @@ export default function App({ user }) {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-[0_10px_40px_-15px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden z-50"
+                    className="absolute right-0 mt-3 w-80 bg-white bg-opacity-100 rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50"
                   >
                     <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                       <h3 className="font-bold text-gray-800">Notifications</h3>
@@ -274,7 +508,16 @@ export default function App({ user }) {
             </div>
             <div className="h-10 w-px bg-gray-200"></div>
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center space-x-4 cursor-pointer bg-white p-2 rounded-2xl shadow-sm border border-gray-100 px-4">
-              <img src={user?.photoURL || 'https://i.pravatar.cc/150?img=47'} alt="Profile" className="w-10 h-10 rounded-xl border border-gray-100" />
+              <img 
+                src={user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'User')}&background=10b981&color=fff`} 
+                alt="Profile" 
+                className="w-10 h-10 rounded-xl border border-gray-100 object-cover" 
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'User')}&background=10b981&color=fff`;
+                }}
+              />
               <div className="hidden sm:block">
                 <p className="text-sm font-bold text-gray-800">{user?.displayName || 'User'}</p>
                 <p className="text-xs text-emerald-600 font-semibold">Logistics Admin</p>
@@ -306,7 +549,7 @@ export default function App({ user }) {
                     <h2 className="text-4xl font-black text-gray-900 tracking-tight">Overview Setup</h2>
                     <p className="text-gray-500 font-medium mt-2">Monitor your global supply chain telemetry in real-time.</p>
                   </div>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all flex items-center">
+                  <motion.button onClick={generateReport} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all flex items-center">
                     <TrendingUp className="mr-2 w-5 h-5" /> Generate Report
                   </motion.button>
                 </div>
@@ -416,10 +659,10 @@ export default function App({ user }) {
                 variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }}
                 className="max-w-[1600px] mx-auto space-y-8"
               >
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-center mb-4">
                   <div>
                     <h2 className="text-4xl font-black text-gray-900 tracking-tight">Inventory Management</h2>
-                    <p className="text-gray-500 font-medium mt-2">Click on any inventory item below to view detailed deploy actions.</p>
+                    <p className="text-gray-500 font-medium mt-2">Browse products by category. Click any item to deploy.</p>
                   </div>
                   <motion.button
                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -430,61 +673,200 @@ export default function App({ user }) {
                   </motion.button>
                 </div>
 
+                {/* Category Filter Tabs */}
+                {!inventoryLoading && inventoryItems.length > 0 && (
+                  <motion.div variants={popIn} className="flex items-center gap-2 flex-wrap">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      onClick={() => setInventoryCategoryFilter('All')}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        inventoryCategoryFilter === 'All'
+                          ? 'bg-emerald-600 text-white shadow-md'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
+                      }`}
+                    >
+                      <Layers className="w-4 h-4 inline mr-1.5 -mt-0.5" /> All ({inventoryItems.length})
+                    </motion.button>
+                    {categoryStats.map(cs => {
+                      const cfg = getCategoryConfig(cs.category);
+                      const CatIcon = cfg.icon;
+                      return (
+                        <motion.button
+                          key={cs.category}
+                          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                          onClick={() => setInventoryCategoryFilter(cs.category)}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                            inventoryCategoryFilter === cs.category
+                              ? `${cfg.activeBg} text-white shadow-md`
+                              : `bg-white text-gray-600 border border-gray-200 hover:${cfg.border} hover:${cfg.color}`
+                          }`}
+                        >
+                          <CatIcon className="w-4 h-4 inline mr-1.5 -mt-0.5" /> {cs.category} ({cs.count})
+                        </motion.button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+
+                {/* Inventory Search Bar */}
+                {!inventoryLoading && inventoryItems.length > 0 && (
+                  <motion.div variants={popIn} className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by product name, ID, location, or quantity range (e.g. 100-500)..."
+                      value={inventorySearchQuery}
+                      onChange={(e) => setInventorySearchQuery(e.target.value)}
+                      className="w-full pl-12 pr-12 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-400 text-gray-700 transition-all placeholder-gray-400"
+                    />
+                    {inventorySearchQuery && (
+                      <button
+                        onClick={() => setInventorySearchQuery('')}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <X className="w-4 h-4 text-gray-400" />
+                      </button>
+                    )}
+                  </motion.div>
+                )}
+
                 {inventoryLoading ? (
-                  <div className="col-span-3 flex items-center justify-center py-24">
+                  <div className="flex items-center justify-center py-24">
                     <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
                     <span className="ml-3 text-gray-500 font-semibold">Loading inventory from Firestore...</span>
                   </div>
                 ) : inventoryItems.length === 0 ? (
-                  <div className="col-span-3 flex flex-col items-center justify-center py-24 text-center">
+                  <div className="flex flex-col items-center justify-center py-24 text-center">
                     <Box className="w-16 h-16 text-gray-300 mb-4" />
                     <h3 className="text-xl font-bold text-gray-400">No inventory items yet</h3>
                     <p className="text-gray-400 mt-2">Click "Register New Item" to add your first item.</p>
                   </div>
-                ) : inventoryItems.map((item) => (
-                   <motion.div 
-                     key={item.id} variants={popIn}
-                     whileHover={{ y: -8, scale: 1.02 }}
-                     onClick={() => setSelectedInventory(item)}
-                     className={`bg-white rounded-3xl border-2 ${selectedInventory?.id === item.id ? 'border-emerald-500 shadow-[0_15px_40px_rgba(16,185,129,0.2)]' : 'border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:border-emerald-200'} p-8 cursor-pointer transition-all flex flex-col justify-between h-[250px] relative overflow-hidden group`}
-                   >
-                      <div className="flex justify-between items-start mb-4 relative z-10">
-                         <div>
-                            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 transition-colors">
-                               <Box className="w-5 h-5 text-emerald-600" />
+                ) : (
+                  <div className="space-y-10">
+                    {groupedInventory
+                      .filter(g => inventoryCategoryFilter === 'All' || g.category === inventoryCategoryFilter)
+                      .map(group => {
+                        const cfg = getCategoryConfig(group.category);
+                        const CatIcon = cfg.icon;
+                        
+                        // Filter items by inventory search query
+                        const filteredItems = group.items.filter(item => {
+                          if (!inventorySearchQuery.trim()) return true;
+                          const q = inventorySearchQuery.toLowerCase().trim();
+                          
+                          // Check for range query (e.g. "100-500")
+                          const rangeMatch = q.match(/^(\d+)\s*-\s*(\d+)$/);
+                          if (rangeMatch) {
+                            const min = Number(rangeMatch[1]);
+                            const max = Number(rangeMatch[2]);
+                            const count = Number(item.count || 0);
+                            return count >= min && count <= max;
+                          }
+                          
+                          // Text-based search: name, id, location, type, status
+                          return (
+                            item.name.toLowerCase().includes(q) ||
+                            item.id.toLowerCase().includes(q) ||
+                            item.location.toLowerCase().includes(q) ||
+                            (item.type || '').toLowerCase().includes(q) ||
+                            item.status.toLowerCase().includes(q) ||
+                            String(item.count).includes(q)
+                          );
+                        });
+
+                        if (filteredItems.length === 0) return null;
+
+                        const totalUnits = filteredItems.reduce((s, i) => s + Number(i.count || 0), 0);
+                        return (
+                          <motion.div key={group.category} variants={popIn}>
+                            {/* Category Header */}
+                            <div className={`flex items-center justify-between mb-5 p-4 rounded-2xl ${cfg.bg} border ${cfg.border}`}>
+                              <div className="flex items-center">
+                                <div className={`p-2.5 rounded-xl bg-white/80 mr-3`}>
+                                  <CatIcon className={`w-5 h-5 ${cfg.color}`} />
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-black text-gray-900">{group.category}</h3>
+                                  <p className="text-xs font-medium text-gray-500">{filteredItems.length} product{filteredItems.length !== 1 ? 's' : ''} • {totalUnits.toLocaleString()} total units</p>
+                                </div>
+                              </div>
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-900 leading-tight">{item.name}</h3>
-                         </div>
-                         <div className="flex flex-col items-end gap-2">
-                           <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider ${
-                              item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
-                              item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
-                              'bg-amber-100 text-amber-700'
-                           }`}>
-                              {item.status}
-                           </span>
-                           <button
-                             onClick={(e) => { e.stopPropagation(); deleteItem(item.id); if(selectedInventory?.id === item.id) setSelectedInventory(null); }}
-                             className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </button>
-                         </div>
-                      </div>
-                      <div className="relative z-10">
-                         <div className="flex justify-between items-end">
-                            <div>
-                               <p className="text-sm font-semibold text-gray-400 mb-1">ID: {item.id.slice(0,8)}...</p>
-                               <p className="text-sm font-semibold text-gray-500 flex items-center"><Map className="w-4 h-4 mr-1"/> {item.location}</p>
+
+                            {/* Items Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {filteredItems.map((item) => (
+                                <motion.div 
+                                  key={item.id}
+                                  whileHover={{ y: -6, scale: 1.02 }}
+                                  onClick={() => setSelectedInventory(item)}
+                                  className={`bg-white rounded-3xl border-2 ${selectedInventory?.id === item.id ? 'border-emerald-500 shadow-[0_15px_40px_rgba(16,185,129,0.2)]' : 'border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:border-emerald-200'} p-6 cursor-pointer transition-all flex flex-col justify-between h-[230px] relative overflow-hidden group`}
+                                >
+                                  <div className="flex justify-between items-start mb-3 relative z-10">
+                                    <div>
+                                      <div className={`w-9 h-9 ${cfg.bg} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                                        <CatIcon className={`w-4 h-4 ${cfg.color}`} />
+                                      </div>
+                                      <h3 className="text-xl font-bold text-gray-900 leading-tight">{item.name}</h3>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                                        item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
+                                        item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
+                                        'bg-amber-100 text-amber-700'
+                                      }`}>
+                                        {item.status}
+                                      </span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); deleteItem(item.id); if(selectedInventory?.id === item.id) setSelectedInventory(null); }}
+                                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="relative z-10">
+                                    <div className="flex justify-between items-end">
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-400 mb-0.5">ID: {item.id.slice(0,8)}...</p>
+                                        <p className="text-xs font-semibold text-gray-500 flex items-center"><Map className="w-3.5 h-3.5 mr-1"/> {item.location}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block mb-0.5">Quantity</span>
+                                        <span className="text-3xl font-black text-emerald-600">{Number(item.count).toLocaleString()}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
                             </div>
-                            <div className="text-right">
-                               <span className="text-xs font-bold uppercase tracking-widest text-gray-400 block mb-1">Quantity</span>
-                               <span className="text-4xl font-black text-emerald-600">{Number(item.count).toLocaleString()}</span>
-                            </div>
-                         </div>
-                      </div>
-                   </motion.div>
-                ))}
+                          </motion.div>
+                        );
+                      })}
+                    {/* No search results message */}
+                    {inventorySearchQuery.trim() && groupedInventory
+                      .filter(g => inventoryCategoryFilter === 'All' || g.category === inventoryCategoryFilter)
+                      .every(group => {
+                        const q = inventorySearchQuery.toLowerCase().trim();
+                        const rangeMatch = q.match(/^(\d+)\s*-\s*(\d+)$/);
+                        return group.items.filter(item => {
+                          if (rangeMatch) {
+                            const count = Number(item.count || 0);
+                            return count >= Number(rangeMatch[1]) && count <= Number(rangeMatch[2]);
+                          }
+                          return item.name.toLowerCase().includes(q) || item.id.toLowerCase().includes(q) || item.location.toLowerCase().includes(q) || (item.type || '').toLowerCase().includes(q) || item.status.toLowerCase().includes(q) || String(item.count).includes(q);
+                        }).length === 0;
+                      }) && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                          <Search className="w-12 h-12 text-gray-300 mb-3" />
+                          <h3 className="text-lg font-bold text-gray-400">No items match "{inventorySearchQuery}"</h3>
+                          <p className="text-sm text-gray-400 mt-1">Try a different name, ID, location, or quantity range (e.g. 50-200)</p>
+                          <button onClick={() => setInventorySearchQuery('')} className="mt-4 px-4 py-2 bg-emerald-50 text-emerald-600 font-bold rounded-xl hover:bg-emerald-100 transition-colors text-sm">
+                            Clear Search
+                          </button>
+                        </div>
+                      )}
+                  </div>
+                )}
 
                 <AnimatePresence>
                    {selectedInventory && (
@@ -530,6 +912,7 @@ export default function App({ user }) {
               <AddItemModal
                 onClose={() => setShowModal(false)}
                 onAdd={addItem}
+                existingCategories={existingCategories}
               />
             )}
 
@@ -572,6 +955,163 @@ export default function App({ user }) {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* GENERATE REPORT MODAL */}
+      <AnimatePresence>
+        {showReport && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={() => setShowReport(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-white shrink-0">
+                <div className="flex items-center">
+                  <div className="p-3 bg-emerald-100 rounded-2xl mr-4">
+                    <ClipboardList className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Supply Chain Report</h2>
+                    <p className="text-sm text-gray-500 font-medium mt-0.5">Generated {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                    onClick={downloadReport}
+                    className="flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-colors text-sm"
+                  >
+                    <Download className="w-4 h-4 mr-2" /> Download
+                  </motion.button>
+                  <button onClick={() => setShowReport(false)} className="p-2.5 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[
+                    { label: 'Total Items', value: reportData.totalItems, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+                    { label: 'Total Units', value: reportData.totalUnits.toLocaleString(), color: 'text-blue-700', bg: 'bg-blue-50' },
+                    { label: 'Total Sales', value: reportData.totalSales.toLocaleString(), color: 'text-purple-700', bg: 'bg-purple-50' },
+                    { label: 'Healthy Stock', value: reportData.healthyStock.length, color: 'text-green-700', bg: 'bg-green-50' },
+                    { label: 'Low Stock', value: reportData.lowStock.length, color: 'text-amber-700', bg: 'bg-amber-50' },
+                    { label: 'Out of Stock', value: reportData.outOfStock.length, color: 'text-red-700', bg: 'bg-red-50' },
+                  ].map((card, i) => (
+                    <div key={i} className={`${card.bg} p-4 rounded-2xl`}>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{card.label}</p>
+                      <p className={`text-3xl font-black ${card.color}`}>{card.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Alerts Section */}
+                {(reportData.outOfStock.length > 0 || reportData.lowStock.length > 0) && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">Alerts & Warnings</h3>
+                    {reportData.outOfStock.length > 0 && (
+                      <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
+                        <div className="flex items-center mb-2">
+                          <AlertTriangle className="w-4 h-4 text-red-500 mr-2" />
+                          <span className="text-sm font-bold text-red-700">Critical: Out of Stock ({reportData.outOfStock.length})</span>
+                        </div>
+                        <p className="text-sm text-red-600 font-medium">{reportData.outOfStock.map(i => i.name).join(', ')}</p>
+                      </div>
+                    )}
+                    {reportData.lowStock.length > 0 && (
+                      <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                        <div className="flex items-center mb-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-500 mr-2" />
+                          <span className="text-sm font-bold text-amber-700">Warning: Low Stock ({reportData.lowStock.length})</span>
+                        </div>
+                        <p className="text-sm text-amber-600 font-medium">{reportData.lowStock.map(i => `${i.name} (${i.count})`).join(', ')}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Inventory Table */}
+                {inventoryItems.length > 0 ? (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Inventory Breakdown</h3>
+                    <div className="border border-gray-100 rounded-2xl overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 text-left">
+                            <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">#</th>
+                            <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">Item</th>
+                            <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs">Location</th>
+                            <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs text-right">Qty</th>
+                            <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs text-right">Sales</th>
+                            <th className="px-4 py-3 font-bold text-gray-600 uppercase tracking-wider text-xs text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inventoryItems.map((item, idx) => (
+                            <tr key={item.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
+                              <td className="px-4 py-3 font-semibold text-gray-400">{idx + 1}</td>
+                              <td className="px-4 py-3 font-bold text-gray-800">{item.name}</td>
+                              <td className="px-4 py-3 text-gray-500 font-medium">{item.location}</td>
+                              <td className="px-4 py-3 font-bold text-gray-800 text-right">{Number(item.count).toLocaleString()}</td>
+                              <td className="px-4 py-3 font-bold text-gray-800 text-right">{Number(item.sales || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                  item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
+                                  item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
+                                  'bg-amber-100 text-amber-700'
+                                }`}>{item.status}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    <Box className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p className="font-bold text-lg">No inventory data</p>
+                    <p className="text-sm">Register items to see them in the report.</p>
+                  </div>
+                )}
+
+                {/* Locations Breakdown */}
+                {reportData.topLocations.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Items by Location</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {reportData.topLocations.map(([loc, count]) => (
+                        <div key={loc} className="bg-gray-50 rounded-xl p-3 flex items-center">
+                          <Map className="w-4 h-4 text-emerald-500 mr-2 shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-gray-800 truncate">{loc}</p>
+                            <p className="text-xs text-gray-500 font-medium">{count} item{count !== 1 ? 's' : ''}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
