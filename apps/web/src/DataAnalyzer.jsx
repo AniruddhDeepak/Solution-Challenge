@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 const PRODUCT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 // Deterministic random number generator based on string
 const hashString = (str) => {
@@ -63,7 +64,7 @@ export default function DataAnalyzer({ items }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:8000/api/ai-analyze', {
+      const response = await fetch(`${API_URL}/api/ai-analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items })
@@ -82,11 +83,11 @@ export default function DataAnalyzer({ items }) {
 
   useEffect(() => {
     fetchAIAnalysis();
-  }, [items.length]); // Refresh when item count changes
+  }, [items]); // Refresh when items data changes
 
   // 1. Process and normalize inventory data for charts
   const processedData = useMemo(() => {
-    return items.map(item => ({
+    return items.map((item, idx) => ({
       ...item,
       sales: item.sales !== undefined && item.sales !== '' ? Number(item.sales) : 0,
       count: Number(item.count)
@@ -315,8 +316,8 @@ export default function DataAnalyzer({ items }) {
                     The following items have sales outpacing inventory:
                   </p>
                   <ul className="mt-2 space-y-1">
-                    {insights.restockItems.map(item => (
-                      <li key={item.id} className="text-xs font-bold text-rose-800 flex justify-between">
+                    {insights.restockItems.map((item, idx) => (
+                      <li key={idx} className="text-xs font-bold text-rose-800 flex justify-between">
                         <span>{item.name}</span>
                         <span>{item.count} left</span>
                       </li>

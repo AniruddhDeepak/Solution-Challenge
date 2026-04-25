@@ -23,6 +23,8 @@ import {
   BarChart, Bar
 } from 'recharts';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 // Simple Counter component for cool dashboard effect
 const Counter = ({ value, suffix = "" }) => {
   const [displayValue, setDisplayValue] = useState(0);
@@ -240,8 +242,8 @@ export default function App({ user }) {
     try {
       // Try the FastAPI backend first (AI-powered when running)
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4000); // 4s timeout
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,

@@ -139,7 +139,7 @@ def read_root():
 
 @app.post("/api/ai-analyze")
 async def analyze_inventory(request: AnalysisRequest):
-    inventory_data = [item.dict() for item in request.items]
+    inventory_data = [item.model_dump() for item in request.items]
 
     # Try Gemini AI first
     if client:
@@ -167,8 +167,8 @@ async def analyze_inventory(request: AnalysisRequest):
 
         # Try multiple models in order of preference
         models_to_try = [
-            "gemini-2.5-flash-lite",
-            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
         ]
 
         for model_name in models_to_try:
@@ -266,7 +266,7 @@ def compute_chat_fallback(message: str, items: list) -> str:
 
 @app.post("/api/chat")
 async def chat_assistant(request: ChatRequest):
-    inventory_data = [item.dict() for item in request.inventory_data]
+    inventory_data = [item.model_dump() for item in request.inventory_data]
 
     if client:
         inventory_context = json.dumps(inventory_data)
@@ -280,7 +280,7 @@ async def chat_assistant(request: ChatRequest):
     Provide a concise, actionable, and professional response. Keep it brief (under 100 words if possible). Use plain text.
     """
         # Try each model with exponential backoff retries (handles free-tier RPM limits)
-        models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
+        models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash"]
         for model_name in models_to_try:
             for attempt in range(3):  # retry each model up to 3 times
                 try:
