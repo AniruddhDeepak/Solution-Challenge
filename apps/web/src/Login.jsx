@@ -62,15 +62,29 @@ export default function Login() {
               Manage global inventory, track shipments, and harness AI-powered insights — all from one unified dashboard.
             </p>
           </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-8 flex flex-wrap gap-2">
+            <span className="text-xs font-bold text-white/70 uppercase tracking-widest w-full mb-1">🌐 UN SDG Alignment</span>
+            {[
+              { num: '9', label: 'Industry & Innovation', color: 'bg-orange-500/30 border-orange-400/40' },
+              { num: '12', label: 'Responsible Production', color: 'bg-yellow-500/30 border-yellow-400/40' },
+              { num: '13', label: 'Climate Action', color: 'bg-teal-500/30 border-teal-400/40' },
+              { num: '8', label: 'Decent Work', color: 'bg-red-500/30 border-red-400/40' },
+            ].map(sdg => (
+              <span key={sdg.num} className={`inline-flex items-center px-3 py-1.5 rounded-full border text-xs font-bold text-white ${sdg.color}`}>
+                SDG {sdg.num} · {sdg.label}
+              </span>
+            ))}
+          </motion.div>
         </div>
 
         {/* Feature highlights */}
         <div className="relative z-10 grid grid-cols-2 gap-4">
           {[
-            { icon: Truck, label: 'Live Shipment Tracking' },
-            { icon: Globe, label: 'Global Network' },
-            { icon: BarChart3, label: 'AI Analytics' },
-            { icon: Box, label: 'Smart Inventory' },
+            { icon: Truck, label: 'Live Shipment Tracking', sub: 'Real-time Kanban board' },
+            { icon: Globe, label: 'Global Warehouses', sub: 'Multi-node management' },
+            { icon: BarChart3, label: 'Gemini AI Analytics', sub: 'Demand forecasting' },
+            { icon: Box, label: 'Carbon Tracker', sub: 'SDG 13 emissions monitor' },
           ].map((f, i) => (
             <motion.div
               key={i}
@@ -82,7 +96,10 @@ export default function Login() {
               <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center mr-3 shrink-0">
                 <f.icon className="w-5 h-5 text-white" />
               </div>
-              <span className="text-sm font-semibold text-white/90">{f.label}</span>
+              <div>
+                <span className="text-sm font-bold text-white/90 block">{f.label}</span>
+                <span className="text-xs text-white/60 font-medium">{f.sub}</span>
+              </div>
             </motion.div>
           ))}
         </div>

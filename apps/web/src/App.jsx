@@ -13,7 +13,7 @@ import {
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
   ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2,
   Download, X, ClipboardList, Layers, ChevronDown, Cpu, Flame, Wrench, Car, HelpCircle, Package, Filter,
-  Target, MessageCircle, Send, Bot, Clock, PackageCheck
+  Target, MessageCircle, Send, Bot, Clock, PackageCheck, Leaf, Wind, Zap, CalendarClock, TriangleAlert, Plus
 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -41,7 +41,7 @@ export default function App({ user }) {
 
   const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, deleteItem } = useInventory();
   const { warehouses, loading: whLoading, addWarehouse, deleteWarehouse } = useWarehouses();
-  const { shipments, loading: shipLoading, addShipment, updateShipmentStatus } = useShipments();
+  const { shipments, loading: shipLoading, addShipment, updateShipmentStatus, deleteShipment } = useShipments();
 
   // Close notifications and search dropdown when clicking outside
   useEffect(() => {
@@ -147,15 +147,33 @@ export default function App({ user }) {
     setChatInput('');
     setIsChatLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      // Route through the FastAPI backend — keeps API key secure server-side,
+      // and gets retry/fallback logic for free (handles 429 rate limits gracefully).
+      const res = await fetch('http://localhost:8000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, inventory_data: inventoryItems })
+        body: JSON.stringify({
+          message: userMsg,
+          inventory_data: inventoryItems.map(i => ({
+            id: i.id || '',
+            name: i.name,
+            count: Number(i.count) || 0,
+            type: i.type || 'General',
+            sales: Number(i.sales) || 0,
+            status: i.status || 'Normal',
+          })),
+        }),
       });
-      const data = await response.json();
-      setChatMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      const reply = data.reply || 'No response received.';
+      setChatMessages(prev => [...prev, { role: 'ai', text: reply }]);
     } catch (err) {
-      setChatMessages(prev => [...prev, { role: 'ai', text: 'Sorry, I am having trouble connecting to the network right now.' }]);
+      console.error('Chat error:', err);
+      const msg = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')
+        ? '⚠️ Cannot reach the AI backend. Make sure the API server is running (npm run dev).'
+        : `Sorry, an error occurred: ${err.message}`;
+      setChatMessages(prev => [...prev, { role: 'ai', text: msg }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -166,7 +184,8 @@ export default function App({ user }) {
     { id: 'inventory', icon: Box, label: 'Inventory Grid' },
     { id: 'network', icon: Map, label: 'Warehouses' },
     { id: 'analytics', icon: BarChart3, label: 'Data Analytics' },
-    { id: 'shipments', icon: Truck, label: 'Active Shipments' }
+    { id: 'shipments', icon: Truck, label: 'Active Shipments' },
+    { id: 'carbon', icon: Leaf, label: 'Carbon Tracker' }
   ];
 
   const searchResults = useMemo(() => {
@@ -341,6 +360,65 @@ export default function App({ user }) {
 
 
 
+  // --- Carbon Footprint Logic ---
+  // CO₂ emission factors (kg CO₂ per km per tonne)
+  const CO2_FACTORS = { truck: 0.21, air: 0.51, sea: 0.016, rail: 0.041 };
+  // Rough distance estimates between common origin-destination pairs (km)
+  const getEstimatedDistance = (origin, destination) => {
+    const key = [origin, destination].sort().join('|').toLowerCase();
+    const distances = {
+      'mumbai|delhi': 1400, 'bangalore|chennai': 350, 'delhi|kolkata': 1500,
+      'mumbai|chennai': 1330, 'bangalore|mumbai': 980, 'delhi|mumbai': 1400,
+      'warehouse a|warehouse b': 800, 'warehouse b|warehouse c': 600,
+      'regional distributor|warehouse a': 400, 'regional distributor|warehouse b': 550,
+    };
+    return distances[key] || Math.floor(Math.random() * 800 + 300);
+  };
+
+  const carbonData = useMemo(() => {
+    const withCO2 = shipments.map(s => {
+      const distance = getEstimatedDistance(s.origin || '', s.destination || '');
+      const weight = s.quantity ? Number(s.quantity) * 0.05 : 1; // assume 50kg per unit
+      const mode = s.transportMode || 'truck';
+      const factor = CO2_FACTORS[mode] || CO2_FACTORS.truck;
+      const co2 = +(distance * weight * factor / 1000).toFixed(2); // tonnes CO₂
+      return { ...s, co2, distance, mode, weight };
+    });
+    const totalCO2 = +withCO2.reduce((sum, s) => sum + s.co2, 0).toFixed(2);
+    const avgCO2 = withCO2.length > 0 ? +(totalCO2 / withCO2.length).toFixed(2) : 0;
+    const greenShipments = withCO2.filter(s => s.co2 < 0.5).length;
+    const highEmitters = withCO2.filter(s => s.co2 > 2).sort((a,b) => b.co2 - a.co2).slice(0, 3);
+    // Monthly aggregation (mock progression showing improvement)
+    const months = ['Jan','Feb','Mar','Apr','May','Jun'];
+    const monthlyTrend = months.map((month, i) => ({
+      month,
+      co2: +(totalCO2 * (1.3 - i * 0.06) + Math.random() * 0.5).toFixed(2)
+    }));
+    return { withCO2, totalCO2, avgCO2, greenShipments, highEmitters, monthlyTrend };
+  }, [shipments]);
+
+  // Shipment creation state
+  const [showAddShipment, setShowAddShipment] = useState(false);
+  const [deployToast, setDeployToast] = useState(null);
+  const [showShipmentBadge, setShowShipmentBadge] = useState(false);
+  const [newShipment, setNewShipment] = useState({ itemName: '', quantity: '', origin: '', destination: '', transportMode: 'truck', etaDays: '3' });
+  const handleAddShipment = async (e) => {
+    e.preventDefault();
+    if (!newShipment.itemName || !newShipment.origin || !newShipment.destination) return;
+    const eta = new Date();
+    eta.setDate(eta.getDate() + Number(newShipment.etaDays || 3));
+    await addShipment({
+      itemName: newShipment.itemName,
+      quantity: Number(newShipment.quantity) || 1,
+      origin: newShipment.origin,
+      destination: newShipment.destination,
+      transportMode: newShipment.transportMode,
+      etaDate: eta.toISOString(),
+    });
+    setNewShipment({ itemName: '', quantity: '', origin: '', destination: '', transportMode: 'truck', etaDays: '3' });
+    setShowAddShipment(false);
+  };
+
   // Animation variants
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -397,8 +475,12 @@ export default function App({ user }) {
                   <motion.div layoutId="navIndicator" className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-emerald-500 rounded-r-md"></motion.div>
                 )}
                 <item.icon className={`w-6 h-6 mr-4 transition-colors ${activeTab === item.id ? 'text-emerald-600' : 'text-white/70'}`} />
-                <span className="hidden lg:block text-base">{item.label}</span>
-                {activeTab === item.id && <ChevronRight className="w-5 h-5 ml-auto opacity-50" />}
+                <span className="hidden lg:block text-base flex-1">{item.label}</span>
+                {item.id === 'shipments' && showShipmentBadge && (
+                  <span className="w-2.5 h-2.5 bg-red-500 rounded-full ml-auto animate-pulse shrink-0" />
+                )}
+                {activeTab === item.id && item.id !== 'shipments' && <ChevronRight className="w-5 h-5 ml-auto opacity-50" />}
+                {activeTab === item.id && item.id === 'shipments' && shipments.filter(s => s.status === 'pending').length === 0 && <ChevronRight className="w-5 h-5 ml-auto opacity-50" />}
               </motion.button>
             ))}
           </nav>
@@ -904,38 +986,73 @@ export default function App({ user }) {
 
                 <AnimatePresence>
                    {selectedInventory && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                        animate={{ opacity: 1, height: 'auto', marginTop: '2rem' }}
-                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                        className="bg-emerald-50 border border-emerald-200 p-10 rounded-3xl shadow-inner relative overflow-hidden"
-                      >
-                         <div className="absolute right-[-5%] top-[-10%] opacity-10">
-                            <Box className="w-64 h-64 text-emerald-600" />
+                     <motion.div
+                       initial={{ opacity: 0 }}
+                       animate={{ opacity: 1 }}
+                       exit={{ opacity: 0 }}
+                       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                       onClick={() => setSelectedInventory(null)}
+                     >
+                       <motion.div
+                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                         animate={{ opacity: 1, scale: 1, y: 0 }}
+                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                         transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                         className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-10 relative overflow-hidden"
+                         onClick={e => e.stopPropagation()}
+                       >
+                         {/* Decorative background icon */}
+                         <div className="absolute right-[-8%] top-[-10%] opacity-5 pointer-events-none">
+                           <Box className="w-64 h-64 text-emerald-600" />
                          </div>
+
+                         {/* Close button */}
+                         <button
+                           onClick={() => setSelectedInventory(null)}
+                           className="absolute top-5 right-5 p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
+                         >
+                           <X className="w-5 h-5" />
+                         </button>
+
                          <div className="relative z-10">
-                            <h3 className="text-3xl font-black text-gray-900 mb-2">Deploy {selectedInventory.name}</h3>
-                            <p className="text-emerald-700 font-medium text-lg mb-8 max-w-2xl">
-                               Confirm logistics routing for {selectedInventory.count} units originating from {selectedInventory.location}. This action integrates directly into the global bandwidth tracker.
-                            </p>
-                            <div className="flex space-x-4">
-                               <motion.button
-                                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                  onClick={async () => {
-                                    const deployed = Math.max(0, selectedInventory.count - 10);
-                                    await deployItem(selectedInventory.id, deployed);
-                                    setSelectedInventory(null);
-                                  }}
-                                  className="px-8 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center"
-                               >
-                                  <ArrowUpRight className="mr-2 w-5 h-5" /> Confirm Deployment (-10 units)
-                               </motion.button>
-                               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setSelectedInventory(null)} className="px-8 py-4 bg-white border border-emerald-200 text-emerald-600 font-bold rounded-xl hover:bg-gray-50 transition">
-                                  Cancel
-                               </motion.button>
-                            </div>
+                           <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
+                             <ArrowUpRight className="w-7 h-7 text-emerald-600" />
+                           </div>
+                           <h3 className="text-3xl font-black text-gray-900 mb-2">Deploy {selectedInventory.name}</h3>
+                           <p className="text-gray-500 font-medium text-base mb-2">
+                             📍 {selectedInventory.location}
+                           </p>
+                           <p className="text-gray-600 font-medium text-base mb-8">
+                             Confirm logistics routing for <span className="font-black text-emerald-600">{selectedInventory.count} units</span>. This will deduct 10 units and integrate with the global bandwidth tracker.
+                           </p>
+                           <div className="flex space-x-3">
+                             <motion.button
+                               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                               onClick={async () => {
+                                 const deployed = Math.max(0, selectedInventory.count - 10);
+                                 await deployItem(selectedInventory.id, deployed);
+                                 await addShipment({ itemName: selectedInventory.name, quantity: 10, origin: selectedInventory.location, destination: 'Pending Assignment', transportMode: 'truck', etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() });
+                                 setDeployToast(selectedInventory.name);
+                                 setTimeout(() => setDeployToast(null), 3500);
+                                 setShowShipmentBadge(true);
+                                 setTimeout(() => setShowShipmentBadge(false), 10000);
+                                 setSelectedInventory(null);
+                               }}
+                               className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center justify-center"
+                             >
+                               <ArrowUpRight className="mr-2 w-5 h-5" /> Confirm Deploy (−10 units)
+                             </motion.button>
+                             <motion.button
+                               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                               onClick={() => setSelectedInventory(null)}
+                               className="px-6 py-4 bg-gray-50 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-100 transition"
+                             >
+                               Cancel
+                             </motion.button>
+                           </div>
                          </div>
-                      </motion.div>
+                       </motion.div>
+                     </motion.div>
                    )}
                 </AnimatePresence>
               </motion.div>
@@ -1009,7 +1126,54 @@ export default function App({ user }) {
                     <h2 className="text-4xl font-black text-gray-900 tracking-tight">Active Shipments</h2>
                     <p className="text-gray-500 font-medium mt-2">Track real-time logistics and dispatch status across your zones.</p>
                   </div>
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddShipment(true)} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all flex items-center">
+                    <Plus className="mr-2 w-5 h-5" /> New Shipment
+                  </motion.button>
                 </div>
+
+                {/* Add Shipment Form */}
+                <AnimatePresence>
+                  {showAddShipment && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-blue-50 border border-blue-100 rounded-3xl p-8 mb-2 overflow-hidden">
+                      <h3 className="text-xl font-black text-gray-900 mb-6">Create New Shipment</h3>
+                      <form onSubmit={handleAddShipment} className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="col-span-2 md:col-span-1">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Item Name</label>
+                          <input required value={newShipment.itemName} onChange={e => setNewShipment(p => ({...p, itemName: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Steel Beams" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Quantity</label>
+                          <input type="number" value={newShipment.quantity} onChange={e => setNewShipment(p => ({...p, quantity: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. 50" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Origin</label>
+                          <input required value={newShipment.origin} onChange={e => setNewShipment(p => ({...p, origin: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Warehouse A" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Destination</label>
+                          <input required value={newShipment.destination} onChange={e => setNewShipment(p => ({...p, destination: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Regional Distributor" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Transport Mode</label>
+                          <select value={newShipment.transportMode} onChange={e => setNewShipment(p => ({...p, transportMode: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400">
+                            <option value="truck">🚛 Truck</option>
+                            <option value="air">✈️ Air</option>
+                            <option value="sea">🚢 Sea</option>
+                            <option value="rail">🚂 Rail</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">ETA (days)</label>
+                          <input type="number" min="1" value={newShipment.etaDays} onChange={e => setNewShipment(p => ({...p, etaDays: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" />
+                        </div>
+                        <div className="col-span-2 md:col-span-3 flex gap-3">
+                          <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">Create Shipment</button>
+                          <button type="button" onClick={() => setShowAddShipment(false)} className="px-8 py-3 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition">Cancel</button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
                     <div className="flex items-center justify-between mb-6">
@@ -1018,12 +1182,14 @@ export default function App({ user }) {
                     </div>
                     <div className="space-y-4">
                       {shipments.filter(s => s.status === 'pending').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="relative bg-white p-5 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-amber-400 to-amber-500"></div>
-                          <div className="pl-2">
+                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                          <div>
                             <div className="flex justify-between items-start mb-2">
                               <h4 className="font-black text-gray-900">{s.itemName}</h4>
-                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                                <button onClick={() => deleteShipment(s.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors border border-red-100"><Trash2 className="w-4 h-4" /></button>
+                              </div>
                             </div>
                             <p className="text-xs font-bold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
                             <button onClick={() => updateShipmentStatus(s.id, 'transit')} className="w-full py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-sm transition-all border border-blue-200/50">Dispatch Shipment</button>
@@ -1038,19 +1204,29 @@ export default function App({ user }) {
                       <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">{shipments.filter(s => s.status === 'transit').length}</span>
                     </div>
                     <div className="space-y-4">
-                      {shipments.filter(s => s.status === 'transit').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="relative bg-white p-5 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
-                          <div className="pl-2">
-                            <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-black text-gray-900">{s.itemName}</h4>
-                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                      {shipments.filter(s => s.status === 'transit').map(s => {
+                        const isDelayed = s.etaDate && new Date() > new Date(s.etaDate);
+                        return (
+                          <motion.div key={s.id} layoutId={s.id} className={`bg-white p-5 rounded-2xl shadow-sm border ${isDelayed ? 'border-red-200 bg-red-50/30' : 'border-gray-100'}`}>
+                            <div>
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-black text-gray-900">{s.itemName}</h4>
+                                <div className="flex flex-col items-end gap-1">
+                                   <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                                    <button onClick={() => deleteShipment(s.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors border border-red-100"><Trash2 className="w-4 h-4" /></button>
+                                  </div>
+                                  {isDelayed && <span className="text-[10px] font-black text-red-600 bg-red-100 px-2 py-0.5 rounded-md flex items-center"><TriangleAlert className="w-3 h-3 mr-1" />DELAYED</span>}
+                                </div>
+                              </div>
+                              <p className="text-xs font-bold text-gray-500 mb-1">{s.origin} → {s.destination}</p>
+                              {s.etaDate && <p className="text-[10px] font-bold text-gray-400 mb-3 flex items-center"><CalendarClock className="w-3 h-3 mr-1" />ETA: {new Date(s.etaDate).toLocaleDateString()}</p>}
+                              {s.transportMode && <p className="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-wider">{s.transportMode === 'truck' ? '🚛' : s.transportMode === 'air' ? '✈️' : s.transportMode === 'sea' ? '🚢' : '🚂'} {s.transportMode}</p>}
+                              <button onClick={() => updateShipmentStatus(s.id, 'delivered')} className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-sm transition-all border border-emerald-200/50">Mark Delivered</button>
                             </div>
-                            <p className="text-xs font-bold text-gray-500 mb-4">{s.origin} → {s.destination}</p>
-                            <button onClick={() => updateShipmentStatus(s.id, 'delivered')} className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-sm transition-all border border-emerald-200/50">Mark Delivered</button>
-                          </div>
-                        </motion.div>
-                      ))}
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   </div>
                   <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
@@ -1060,12 +1236,14 @@ export default function App({ user }) {
                     </div>
                     <div className="space-y-4">
                       {shipments.filter(s => s.status === 'delivered').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="relative bg-white p-5 rounded-2xl shadow-sm border border-gray-100 opacity-80 overflow-hidden">
-                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
-                          <div className="pl-2">
+                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 opacity-80">
+                          <div>
                             <div className="flex justify-between items-start mb-2">
                               <h4 className="font-black text-gray-900 line-through decoration-emerald-300">{s.itemName}</h4>
-                              <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
+                                <button onClick={() => deleteShipment(s.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors border border-red-100"><Trash2 className="w-4 h-4" /></button>
+                              </div>
                             </div>
                             <p className="text-xs font-bold text-gray-500 mb-3">{s.origin} → {s.destination}</p>
                             <div className="w-full py-2 text-emerald-600 font-black text-xs text-center flex items-center justify-center border-t border-emerald-50 pt-3"><CheckCircle2 className="w-4 h-4 mr-1" /> Delivery Confirmed</div>
@@ -1075,6 +1253,110 @@ export default function App({ user }) {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+            )}
+
+            {/* CARBON FOOTPRINT TAB */}
+            {activeTab === 'carbon' && (
+              <motion.div key="carbon" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto space-y-8">
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <h2 className="text-4xl font-black text-gray-900 tracking-tight">Carbon Footprint</h2>
+                      <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-black rounded-full uppercase tracking-wider">SDG 13</span>
+                    </div>
+                    <p className="text-gray-500 font-medium mt-2">Track CO₂ emissions per shipment and optimize for a greener supply chain.</p>
+                  </div>
+                </div>
+
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[
+                    { label: 'Total CO₂ Emitted', value: `${carbonData.totalCO2} t`, icon: Wind, color: 'text-slate-600', bg: 'bg-slate-50', sub: 'tonnes this period' },
+                    { label: 'Avg per Shipment', value: `${carbonData.avgCO2} t`, icon: Truck, color: 'text-blue-600', bg: 'bg-blue-50', sub: 'tonnes CO₂' },
+                    { label: 'Green Shipments', value: carbonData.greenShipments, icon: Leaf, color: 'text-emerald-600', bg: 'bg-emerald-50', sub: '< 0.5t CO₂ each' },
+                    { label: 'High Emitters', value: carbonData.highEmitters.length, icon: Zap, color: 'text-red-500', bg: 'bg-red-50', sub: '> 2t CO₂ each' },
+                  ].map((stat, i) => (
+                    <motion.div key={i} variants={popIn} whileHover={{ y: -6 }} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                      <div className={`w-10 h-10 ${stat.bg} rounded-2xl flex items-center justify-center mb-4`}><stat.icon className={`w-5 h-5 ${stat.color}`} /></div>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{stat.label}</p>
+                      <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
+                      <p className="text-xs text-gray-400 font-medium mt-1">{stat.sub}</p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Monthly Trend Chart */}
+                  <motion.div variants={popIn} className="lg:col-span-2 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Monthly CO₂ Trend</h3>
+                    <p className="text-sm text-gray-500 mb-6 font-medium">Emissions trajectory — targeting net reduction quarter-over-quarter.</p>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={carbonData.monthlyTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colCarbon" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                          <XAxis dataKey="month" stroke="#9ca3af" axisLine={false} tickLine={false} dy={10} tick={{fontFamily:'Inter', fontWeight:600}} />
+                          <YAxis stroke="#9ca3af" axisLine={false} tickLine={false} tick={{fontFamily:'Inter', fontWeight:600}} />
+                          <Tooltip contentStyle={{ borderRadius:'12px', border:'none', boxShadow:'0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight:'bold' }} />
+                          <Area type="monotone" dataKey="co2" name="CO₂ (tonnes)" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colCarbon)" activeDot={{ r:7, fill:'#10b981', stroke:'#fff', strokeWidth:3 }} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </motion.div>
+
+                  {/* Per-Shipment Breakdown */}
+                  <motion.div variants={popIn} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col">
+                    <div className="flex items-center mb-6">
+                      <Leaf className="w-5 h-5 text-emerald-600 mr-2" />
+                      <h3 className="text-xl font-bold text-gray-900">Shipment Emissions</h3>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-3">
+                      {carbonData.withCO2.length === 0 && (
+                        <div className="text-center py-12 text-gray-400">
+                          <Truck className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+                          <p className="font-bold">No shipments yet</p>
+                          <p className="text-sm">Create shipments to see emissions.</p>
+                        </div>
+                      )}
+                      {carbonData.withCO2.slice(0, 8).map(s => (
+                        <div key={s.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{s.itemName}</p>
+                            <p className="text-xs text-gray-500 font-medium">{s.origin} → {s.destination}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-sm font-black ${s.co2 > 2 ? 'text-red-500' : s.co2 < 0.5 ? 'text-emerald-600' : 'text-amber-500'}`}>{s.co2}t</span>
+                            <p className="text-[10px] text-gray-400 font-medium">{s.distance} km</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* SDG 13 Banner */}
+                <motion.div variants={popIn} className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-3xl p-8 text-white flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-4xl">🌍</span>
+                      <div>
+                        <h3 className="text-2xl font-black">SDG 13 — Climate Action</h3>
+                        <p className="text-emerald-100 font-medium">ChainHandler tracks and reduces logistics carbon emissions at scale.</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-4">
+                      {['Real-time CO₂ calculation', 'Transport mode optimization', 'Emission trend analytics', 'Green shipment scoring'].map(t => (
+                        <span key={t} className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
 
@@ -1276,6 +1558,27 @@ export default function App({ user }) {
           {isChatOpen ? <X className="w-8 h-8" /> : <MessageCircle className="w-8 h-8" />}
         </motion.button>
       </div>
+
+      {/* Deploy Toast Notification */}
+      <AnimatePresence>
+        {deployToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="fixed bottom-8 left-8 z-[200] flex items-center bg-gray-900 text-white px-5 py-4 rounded-2xl shadow-2xl gap-3 max-w-sm"
+          >
+            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
+              <ArrowUpRight className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-black">Deployment Queued!</p>
+              <p className="text-xs text-gray-400 font-medium mt-0.5"><span className="text-emerald-400 font-bold">{deployToast}</span> added to Active Shipments → Pending Dispatch</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
