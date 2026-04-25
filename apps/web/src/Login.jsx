@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { auth, provider } from './firebase';
 import { Box, Truck, Globe, BarChart3, ArrowRight } from 'lucide-react';
 
 export default function Login() {
   const [savedUser, setSavedUser] = useState(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [stayLoggedIn, setStayLoggedIn] = useState(true);
 
   useEffect(() => {
     const saved = localStorage.getItem('chainhandler_last_user');
@@ -27,6 +28,10 @@ export default function Login() {
       } else {
         provider.setCustomParameters({ prompt: 'select_account' });
       }
+      
+      // Set persistence based on user choice
+      await setPersistence(auth, stayLoggedIn ? browserLocalPersistence : browserSessionPersistence);
+      
       await signInWithPopup(auth, provider);
       // We don't set isAuthenticating to false here because main.jsx will unmount this component on success
     } catch (error) {
@@ -213,6 +218,23 @@ export default function Login() {
                 </span>
               </motion.button>
             )}
+            
+            {/* Stay Logged In Option */}
+            <div className="mt-6 flex items-center justify-center">
+              <label className="flex items-center cursor-pointer group">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only" 
+                    checked={stayLoggedIn}
+                    onChange={(e) => setStayLoggedIn(e.target.checked)}
+                  />
+                  <div className={`w-10 h-5 rounded-full transition-colors ${stayLoggedIn ? 'bg-emerald-500' : 'bg-gray-300'}`}></div>
+                  <div className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform shadow-sm ${stayLoggedIn ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </div>
+                <span className="ml-3 text-sm font-bold text-gray-600 group-hover:text-emerald-700 transition-colors">Stay logged in</span>
+              </label>
+            </div>
 
             <div className="mt-8 p-5 bg-gray-50 rounded-2xl border border-gray-100">
               <p className="text-sm text-gray-500 font-medium leading-relaxed">
