@@ -1,11 +1,11 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Box, MapPin, Package, Tag, Activity, Globe, Building2, Map, Plus, Layers } from 'lucide-react';
 
 const DEFAULT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
 const STATUSES = ['In Stock', 'In Transit', 'Low Stock'];
 
-export default function AddItemModal({ onClose, onAdd, existingCategories = [] }) {
+export default function AddItemModal({ onClose, onAdd, existingCategories = [], warehouses = [] }) {
   // Merge default types with any custom categories from existing inventory
   const allCategories = useMemo(() => {
     const merged = new Set([...DEFAULT_TYPES, ...existingCategories]);
@@ -14,9 +14,7 @@ export default function AddItemModal({ onClose, onAdd, existingCategories = [] }
 
   const [form, setForm] = useState({
     name: '',
-    country: '',
-    district: '',
-    city: '',
+    warehouseId: warehouses.length > 0 ? warehouses[0].id : '',
     status: 'In Stock',
     count: '',
     type: allCategories[0] || 'Electronics',
@@ -30,8 +28,8 @@ export default function AddItemModal({ onClose, onAdd, existingCategories = [] }
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Item name is required';
-    if (!form.country.trim()) e.country = 'Country is required';
-    if (!form.city.trim()) e.city = 'City is required';
+    if (!form.warehouseId && warehouses.length > 0) e.warehouseId = 'Please select a warehouse';
+    else if (warehouses.length === 0) e.warehouseId = 'Please add a warehouse first from the Network tab';
     if (!form.count || isNaN(form.count) || Number(form.count) < 0)
       e.count = 'Enter a valid quantity';
     if (!form.sales || isNaN(form.sales) || Number(form.sales) < 0)
@@ -58,11 +56,9 @@ export default function AddItemModal({ onClose, onAdd, existingCategories = [] }
     if (Object.keys(e2).length > 0) { setErrors(e2); return; }
     setSaving(true);
     try {
-      // Build location string from country/district/city
-      const locationParts = [form.city.trim()];
-      if (form.district.trim()) locationParts.push(form.district.trim());
-      locationParts.push(form.country.trim());
-      const location = locationParts.join(', ');
+      // Get warehouse details
+      const selectedWh = warehouses.find(w => w.id === form.warehouseId);
+      const location = selectedWh ? `${selectedWh.name} (${selectedWh.city || selectedWh.region})` : 'Unknown Warehouse';
 
       // Determine final type
       const finalType = showNewCategory ? newCategoryName.trim() : form.type;
@@ -70,9 +66,6 @@ export default function AddItemModal({ onClose, onAdd, existingCategories = [] }
       await onAdd({
         name: form.name,
         location,
-        country: form.country.trim(),
-        district: form.district.trim(),
-        city: form.city.trim(),
         status: form.status,
         count: Number(form.count),
         type: finalType,
@@ -139,55 +132,29 @@ export default function AddItemModal({ onClose, onAdd, existingCategories = [] }
               {errors.name && <p className="text-red-500 text-xs font-semibold mt-1">{errors.name}</p>}
             </div>
 
-            {/* Location Section */}
+            {/* Warehouse Location */}
             <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-              <label className="block text-sm font-bold text-gray-700 mb-3">
-                <MapPin className="w-4 h-4 inline mr-1 text-emerald-500" /> Location Details
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                <MapPin className="w-4 h-4 inline mr-1 text-emerald-500" /> Storage Warehouse *
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">
-                    <Globe className="w-3 h-3 inline mr-0.5" /> Country *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. India"
-                    value={form.country}
-                    onChange={(e) => setForm({ ...form, country: e.target.value })}
-                    className={`w-full px-3 py-2.5 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
-                      errors.country ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400 bg-white'
-                    }`}
-                  />
-                  {errors.country && <p className="text-red-500 text-xs font-semibold mt-1">{errors.country}</p>}
+              {warehouses.length === 0 ? (
+                <div className="text-sm font-semibold text-red-500 bg-red-50 p-3 rounded-xl border border-red-100">
+                  <Map className="w-4 h-4 inline mr-1" /> No warehouses available. Please add a warehouse first.
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">
-                    <Map className="w-3 h-3 inline mr-0.5" /> District
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Bengaluru Urban"
-                    value={form.district}
-                    onChange={(e) => setForm({ ...form, district: e.target.value })}
-                    className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">
-                    <Building2 className="w-3 h-3 inline mr-0.5" /> City *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Bengaluru"
-                    value={form.city}
-                    onChange={(e) => setForm({ ...form, city: e.target.value })}
-                    className={`w-full px-3 py-2.5 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
-                      errors.city ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-emerald-400 bg-white'
-                    }`}
-                  />
-                  {errors.city && <p className="text-red-500 text-xs font-semibold mt-1">{errors.city}</p>}
-                </div>
-              </div>
+              ) : (
+                <select
+                  value={form.warehouseId}
+                  onChange={(e) => setForm({ ...form, warehouseId: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-medium bg-white transition-all"
+                >
+                  {warehouses.map((wh) => (
+                    <option key={wh.id} value={wh.id}>
+                      {wh.name} — {wh.city || wh.region}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {errors.warehouseId && <p className="text-red-500 text-xs font-semibold mt-1.5">{errors.warehouseId}</p>}
             </div>
 
             {/* Status & Quantity row */}

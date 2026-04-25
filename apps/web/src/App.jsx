@@ -54,6 +54,8 @@ export default function App({ user }) {
   const [healthStatus, setHealthStatus] = useState('Checking...');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInventory, setSelectedInventory] = useState(null);
+  const [restockAmount, setRestockAmount] = useState('');
+  const [deployAmount, setDeployAmount] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -68,7 +70,7 @@ export default function App({ user }) {
   const notificationsRef = useRef(null);
   const searchRef = useRef(null);
 
-  const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, deleteItem } = useInventory();
+  const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, restockItem, deleteItem } = useInventory();
   const { warehouses, loading: whLoading, addWarehouse, deleteWarehouse } = useWarehouses();
   const { shipments, loading: shipLoading, addShipment, updateShipmentStatus, deleteShipment } = useShipments();
 
@@ -1099,7 +1101,7 @@ export default function App({ user }) {
                        animate={{ opacity: 1 }}
                        exit={{ opacity: 0 }}
                        className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-                       onClick={() => setSelectedInventory(null)}
+                       onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
                      >
                        <motion.div
                          initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -1116,7 +1118,7 @@ export default function App({ user }) {
 
                          {/* Close button */}
                          <button
-                           onClick={() => setSelectedInventory(null)}
+                           onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
                            className="absolute top-5 right-5 p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
                          >
                            <X className="w-5 h-5" />
@@ -1131,32 +1133,83 @@ export default function App({ user }) {
                              📍 {selectedInventory.location}
                            </p>
                            <p className="text-gray-600 font-medium text-base mb-8">
-                             Confirm logistics routing for <span className="font-black text-emerald-600">{selectedInventory.count} units</span>. This will deduct 10 units and integrate with the global bandwidth tracker.
+                             Confirm logistics routing for <span className="font-black text-emerald-600">{selectedInventory.count} units</span>. Enter the number of units to deploy.
                            </p>
-                           <div className="flex space-x-3">
-                             <motion.button
-                               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                               onClick={async () => {
-                                 const deployed = Math.max(0, selectedInventory.count - 10);
-                                 await deployItem(selectedInventory.id, deployed);
-                                 await addShipment({ itemName: selectedInventory.name, quantity: 10, origin: selectedInventory.location, destination: 'Pending Assignment', transportMode: 'truck', etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() });
-                                 setDeployToast(selectedInventory.name);
-                                 setTimeout(() => setDeployToast(null), 3500);
-                                 setShowShipmentBadge(true);
-                                 setTimeout(() => setShowShipmentBadge(false), 10000);
-                                 setSelectedInventory(null);
-                               }}
-                               className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center justify-center"
-                             >
-                               <ArrowUpRight className="mr-2 w-5 h-5" /> Confirm Deploy (−10 units)
-                             </motion.button>
-                             <motion.button
-                               whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                               onClick={() => setSelectedInventory(null)}
-                               className="px-6 py-4 bg-gray-50 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-100 transition"
-                             >
-                               Cancel
-                             </motion.button>
+                           <div className="flex flex-col gap-4">
+                             {/* Deploy Row */}
+                             <div className="flex gap-3">
+                               <input
+                                 type="number"
+                                 min="1"
+                                 max={selectedInventory.count}
+                                 placeholder="Qty"
+                                 value={deployAmount}
+                                 onChange={(e) => setDeployAmount(e.target.value)}
+                                 className="w-24 px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-center font-bold text-gray-700"
+                               />
+                               <motion.button
+                                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                 onClick={async () => {
+                                   const amount = Number(deployAmount);
+                                   if (amount > 0 && amount <= selectedInventory.count) {
+                                     const deployed = Math.max(0, selectedInventory.count - amount);
+                                     await deployItem(selectedInventory.id, deployed);
+                                     await addShipment({ itemName: selectedInventory.name, quantity: amount, origin: selectedInventory.location, destination: 'Pending Assignment', transportMode: 'truck', etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() });
+                                     setDeployToast(selectedInventory.name);
+                                     setTimeout(() => setDeployToast(null), 3500);
+                                     setShowShipmentBadge(true);
+                                     setTimeout(() => setShowShipmentBadge(false), 10000);
+                                     setSelectedInventory(null);
+                                     setRestockAmount('');
+                                     setDeployAmount('');
+                                   }
+                                 }}
+                                 disabled={!deployAmount || Number(deployAmount) <= 0 || Number(deployAmount) > selectedInventory.count}
+                                 className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                               >
+                                 <ArrowUpRight className="mr-2 w-5 h-5" /> Deploy
+                               </motion.button>
+                             </div>
+                             
+                             {/* Restock & Cancel Row */}
+                             <div className="flex gap-3">
+                               {selectedInventory.status === 'Low Stock' && (
+                                 <div className="flex-1 flex gap-3">
+                                   <input
+                                     type="number"
+                                     min="1"
+                                     placeholder="Qty"
+                                     value={restockAmount}
+                                     onChange={(e) => setRestockAmount(e.target.value)}
+                                     className="w-24 px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-center font-bold text-gray-700"
+                                   />
+                                   <motion.button
+                                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                     onClick={async () => {
+                                       const addAmount = Number(restockAmount);
+                                       if (addAmount > 0) {
+                                         const newCount = Number(selectedInventory.count) + addAmount;
+                                         await restockItem(selectedInventory.id, newCount);
+                                         setSelectedInventory(null);
+                                         setRestockAmount('');
+                                         setDeployAmount('');
+                                       }
+                                     }}
+                                     disabled={!restockAmount || Number(restockAmount) <= 0}
+                                     className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+                                   >
+                                     <Plus className="mr-2 w-5 h-5" /> Restock
+                                   </motion.button>
+                                 </div>
+                               )}
+                               <motion.button
+                                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                 onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
+                                 className="px-6 py-4 bg-gray-50 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-100 transition"
+                               >
+                                 Cancel
+                               </motion.button>
+                             </div>
                            </div>
                          </div>
                        </motion.div>
@@ -1172,6 +1225,7 @@ export default function App({ user }) {
                 onClose={() => setShowModal(false)}
                 onAdd={addItem}
                 existingCategories={existingCategories}
+                warehouses={warehouses}
               />
             )}
 

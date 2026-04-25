@@ -55,10 +55,19 @@ export function useInventory() {
     });
   };
 
+  // Update quantity after restock
+  const restockItem = async (id, newCount) => {
+    const ref = doc(db, COLLECTION, id);
+    await updateDoc(ref, {
+      count: newCount,
+      status: newCount <= 10 ? 'Low Stock' : 'In Stock'
+    });
+  };
+
   // Delete an item
   const deleteItem = async (id) => {
     await deleteDoc(doc(db, COLLECTION, id));
   };
 
-  return { items, loading, error, addItem, deployItem, deleteItem };
+  return { items, loading, error, addItem, deployItem, restockItem, deleteItem };
 }
