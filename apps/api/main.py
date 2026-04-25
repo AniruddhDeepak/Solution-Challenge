@@ -167,9 +167,8 @@ async def analyze_inventory(request: AnalysisRequest):
 
         # Try multiple models in order of preference
         models_to_try = [
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash-8b",
-            "gemini-2.0-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-flash",
         ]
 
         for model_name in models_to_try:
@@ -281,7 +280,7 @@ async def chat_assistant(request: ChatRequest):
     Provide a concise, actionable, and professional response. Keep it brief (under 100 words if possible). Use plain text.
     """
         # Try each model with exponential backoff retries (handles free-tier RPM limits)
-        models_to_try = ["gemini-2.0-flash-lite", "gemini-1.5-flash-8b", "gemini-2.0-flash"]
+        models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
         for model_name in models_to_try:
             for attempt in range(3):  # retry each model up to 3 times
                 try:

@@ -185,7 +185,7 @@ export default function DataAnalyzer({ items }) {
                     />
                   ))}
                 </div>
-                <p className="font-bold text-indigo-600 animate-pulse">Gemini is analyzing market data...</p>
+                <p className="font-bold text-indigo-600 animate-pulse">Analysing data...</p>
               </div>
             </motion.div>
           )}

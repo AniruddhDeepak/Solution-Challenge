@@ -1239,7 +1239,7 @@ export default function App({ user }) {
                         <motion.div key={s.id} layoutId={s.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 opacity-80">
                           <div>
                             <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-black text-gray-900 line-through decoration-emerald-300">{s.itemName}</h4>
+                              <h4 className="font-black text-gray-900">{s.itemName}</h4>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
                                 <button onClick={() => deleteShipment(s.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors border border-red-100"><Trash2 className="w-4 h-4" /></button>
