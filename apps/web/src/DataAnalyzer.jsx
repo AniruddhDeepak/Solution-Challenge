@@ -20,6 +20,31 @@ const hashString = (str) => {
   return Math.abs(hash);
 };
 
+// Simple Counter for DataAnalyzer
+const CounterValue = ({ value, suffix = "" }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const target = typeof value === 'string' ? parseInt(value.replace(/,/g, "")) : value;
+  
+  useEffect(() => {
+    if (isNaN(target)) return;
+    let start = 0;
+    const duration = 800;
+    const increment = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= target) {
+        setDisplayValue(target);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(Math.floor(start));
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target]);
+
+  return <>{isNaN(target) ? value : displayValue.toLocaleString()}{suffix}</>;
+};
+
 export default function DataAnalyzer({ items }) {
   const [aiData, setAiData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -136,7 +161,14 @@ export default function DataAnalyzer({ items }) {
       <div className="flex justify-between items-end mb-4">
         <div>
            <div className="flex items-center space-x-3 mb-1">
-             <h2 className="text-4xl font-black text-gray-900 tracking-tight">AI Strategic Engine</h2>
+             <div className="relative">
+               <h2 className="text-4xl font-black text-gray-900 tracking-tight">AI Strategic Engine</h2>
+               <motion.div 
+                 animate={{ opacity: [0, 1, 0] }}
+                 transition={{ duration: 2, repeat: Infinity }}
+                 className="absolute -right-6 top-1 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+               />
+             </div>
              {isLoading && (
                <motion.div 
                  animate={{ rotate: 360 }} 
@@ -168,6 +200,10 @@ export default function DataAnalyzer({ items }) {
 
       {/* 2. Market Intelligence Feed */}
       <motion.div variants={popIn} className="relative overflow-hidden bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+        {/* Subtle mesh background */}
+        <div className="absolute inset-0 pointer-events-none opacity-20" 
+             style={{ backgroundImage: 'radial-gradient(circle, #818cf8 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }} />
+        
         <AnimatePresence>
           {isLoading && (
             <motion.div 
@@ -197,14 +233,27 @@ export default function DataAnalyzer({ items }) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {(marketIntelligence.length > 0 ? marketIntelligence : [1,2,3,4]).map((item, idx) => (
-            <div key={item.id || idx} className={`p-5 rounded-2xl border border-gray-50 bg-gray-50 group cursor-default ${!aiData ? 'animate-pulse' : ''}`}>
-              <div className={`w-10 h-10 rounded-xl ${item.bg || 'bg-gray-100'} flex items-center justify-center mb-4`}>
+            <motion.div 
+              key={item.id || idx} 
+              whileHover={{ y: -5, scale: 1.02 }}
+              className={`p-5 rounded-2xl border border-gray-50 bg-gray-50 group cursor-default relative overflow-hidden transition-all hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5 ${!aiData ? 'animate-pulse' : ''}`}
+            >
+              {/* Shimmer on hover */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                initial={{ x: '-100%' }}
+                whileHover={{ x: '100%' }}
+                transition={{ duration: 0.8 }}
+              />
+              <div className={`w-10 h-10 rounded-xl ${item.bg || 'bg-gray-100'} flex items-center justify-center mb-4 transition-transform group-hover:scale-110`}>
                 {item.icon ? <item.icon className={`w-5 h-5 ${item.color}`} /> : <Activity className="w-5 h-5 text-gray-300" />}
               </div>
               <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">{item.title || 'Loading...'}</h4>
-              <p className={`text-xl font-black mb-3 ${item.color || 'text-gray-400'}`}>{item.value || '---'}</p>
+              <p className={`text-xl font-black mb-3 ${item.color || 'text-gray-400'}`}>
+                {aiData ? <CounterValue value={item.value} /> : '---'}
+              </p>
               <p className="text-sm text-gray-600 font-medium leading-relaxed">{item.desc || 'Waiting for AI processing...'}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </motion.div>
