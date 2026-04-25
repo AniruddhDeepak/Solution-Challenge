@@ -289,7 +289,7 @@ async def chat_assistant(request: ChatRequest):
                 except Exception as e:
                     err_str = str(e)
                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                        wait = 2 ** attempt  # 1s, 2s, 4s
+                        wait = [2, 8, 20][attempt]  # 2s, 8s, 20s
                         print(f"Rate limited on {model_name} (attempt {attempt+1}), retrying in {wait}s...")
                         await asyncio.sleep(wait)
                         continue
