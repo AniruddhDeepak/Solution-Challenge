@@ -4,11 +4,13 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import App from './App.jsx';
 import Login from './Login.jsx';
+import Landing from './Landing.jsx';
 import './index.css';
 
 function Root() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLanding, setShowLanding] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -34,6 +36,10 @@ function Root() {
         </div>
       </div>
     );
+  }
+
+  if (showLanding) {
+    return <Landing onStart={() => setShowLanding(false)} />;
   }
 
   return user ? <App user={user} /> : <Login />;
