@@ -259,9 +259,10 @@ def compute_chat_fallback(message: str, items: list) -> str:
         if most_stock:
             return f"'{most_stock['name']}' has the highest stock with {most_stock['count']:,} units at {most_stock.get('location', 'N/A')}."
 
-    return (f"Based on your inventory: {total_items} items, {total_stock:,} total units, "
-            f"{len(low_stock)} low-stock alerts. "
-            f"Try asking about 'low stock', 'top seller', 'out of stock', or 'summary' for detailed insights.")
+    return (f"I appreciate the question! Based on your current inventory of {total_items} items "
+            f"with {total_stock:,} total units and {total_sales:,} recorded sales, "
+            f"everything is being tracked. Let me know what specific aspect you'd like to dive into — "
+            f"I'm here to help with anything about your supply chain.")
 
 
 @app.post("/api/chat")
