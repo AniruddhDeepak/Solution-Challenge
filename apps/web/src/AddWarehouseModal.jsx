@@ -5,7 +5,7 @@ import { X, Map, Globe, ShieldCheck } from 'lucide-react';
 export default function AddWarehouseModal({ onClose, onAdd }) {
   const [form, setForm] = useState({
     name: '',
-    region: 'North America',
+    city: '',
     capacity: ''
   });
   const [saving, setSaving] = useState(false);
@@ -16,6 +16,7 @@ export default function AddWarehouseModal({ onClose, onAdd }) {
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Warehouse name is required';
+    if (!form.city.trim()) e.city = 'City is required';
     if (!form.capacity || isNaN(form.capacity) || Number(form.capacity) <= 0)
       e.capacity = 'Enter a valid capacity';
     return e;
@@ -42,7 +43,7 @@ export default function AddWarehouseModal({ onClose, onAdd }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         <motion.div
@@ -89,18 +90,21 @@ export default function AddWarehouseModal({ onClose, onAdd }) {
               {errors.name && <p className="text-red-500 text-xs font-semibold mt-1">{errors.name}</p>}
             </div>
 
-            {/* Region */}
+            {/* City */}
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                <Globe className="w-4 h-4 inline mr-1 text-blue-500" /> Operating Zone
+                <Globe className="w-4 h-4 inline mr-1 text-blue-500" /> City Location
               </label>
-              <select
-                value={form.region}
-                onChange={(e) => setForm({ ...form, region: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-sm font-medium bg-white transition-all"
-              >
-                {REGIONS.map((r) => <option key={r}>{r}</option>)}
-              </select>
+              <input
+                type="text"
+                placeholder="e.g. Mumbai, Delhi, Bangalore"
+                value={form.city}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                  errors.city ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-blue-400'
+                }`}
+              />
+              {errors.city && <p className="text-red-500 text-xs font-semibold mt-1">{errors.city}</p>}
             </div>
 
             {/* Capacity */}

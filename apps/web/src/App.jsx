@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
@@ -184,8 +187,7 @@ export default function App({ user }) {
     { id: 'inventory', icon: Box, label: 'Inventory Grid' },
     { id: 'network', icon: Map, label: 'Warehouses' },
     { id: 'analytics', icon: BarChart3, label: 'Data Analytics' },
-    { id: 'shipments', icon: Truck, label: 'Active Shipments' },
-    { id: 'carbon', icon: Leaf, label: 'Carbon Tracker' }
+    { id: 'shipments', icon: Truck, label: 'Shipments' }
   ];
 
   const searchResults = useMemo(() => {
@@ -360,42 +362,6 @@ export default function App({ user }) {
 
 
 
-  // --- Carbon Footprint Logic ---
-  // CO₂ emission factors (kg CO₂ per km per tonne)
-  const CO2_FACTORS = { truck: 0.21, air: 0.51, sea: 0.016, rail: 0.041 };
-  // Rough distance estimates between common origin-destination pairs (km)
-  const getEstimatedDistance = (origin, destination) => {
-    const key = [origin, destination].sort().join('|').toLowerCase();
-    const distances = {
-      'mumbai|delhi': 1400, 'bangalore|chennai': 350, 'delhi|kolkata': 1500,
-      'mumbai|chennai': 1330, 'bangalore|mumbai': 980, 'delhi|mumbai': 1400,
-      'warehouse a|warehouse b': 800, 'warehouse b|warehouse c': 600,
-      'regional distributor|warehouse a': 400, 'regional distributor|warehouse b': 550,
-    };
-    return distances[key] || Math.floor(Math.random() * 800 + 300);
-  };
-
-  const carbonData = useMemo(() => {
-    const withCO2 = shipments.map(s => {
-      const distance = getEstimatedDistance(s.origin || '', s.destination || '');
-      const weight = s.quantity ? Number(s.quantity) * 0.05 : 1; // assume 50kg per unit
-      const mode = s.transportMode || 'truck';
-      const factor = CO2_FACTORS[mode] || CO2_FACTORS.truck;
-      const co2 = +(distance * weight * factor / 1000).toFixed(2); // tonnes CO₂
-      return { ...s, co2, distance, mode, weight };
-    });
-    const totalCO2 = +withCO2.reduce((sum, s) => sum + s.co2, 0).toFixed(2);
-    const avgCO2 = withCO2.length > 0 ? +(totalCO2 / withCO2.length).toFixed(2) : 0;
-    const greenShipments = withCO2.filter(s => s.co2 < 0.5).length;
-    const highEmitters = withCO2.filter(s => s.co2 > 2).sort((a,b) => b.co2 - a.co2).slice(0, 3);
-    // Monthly aggregation (mock progression showing improvement)
-    const months = ['Jan','Feb','Mar','Apr','May','Jun'];
-    const monthlyTrend = months.map((month, i) => ({
-      month,
-      co2: +(totalCO2 * (1.3 - i * 0.06) + Math.random() * 0.5).toFixed(2)
-    }));
-    return { withCO2, totalCO2, avgCO2, greenShipments, highEmitters, monthlyTrend };
-  }, [shipments]);
 
   // Shipment creation state
   const [showAddShipment, setShowAddShipment] = useState(false);
@@ -660,23 +626,23 @@ export default function App({ user }) {
                 variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0, y: -20 }}
                 className="max-w-[1600px] mx-auto space-y-8"
               >
-                <div className="flex justify-between items-end mb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-4">
                   <div>
-                    <h2 className="text-4xl font-black text-gray-900 tracking-tight">Overview Setup</h2>
+                    <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">Overview</h2>
                     <p className="text-gray-500 font-medium mt-2">Monitor your global supply chain telemetry in real-time.</p>
                   </div>
-                  <motion.button onClick={generateReport} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all flex items-center">
+                  <motion.button onClick={generateReport} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all flex items-center shrink-0">
                     <TrendingUp className="mr-2 w-5 h-5" /> Generate Report
                   </motion.button>
                 </div>
                 
-                {/* Interactive Metrics Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {/* Interactive Metrics Grid — wired to real Firestore data */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
                   {[
-                    { label: 'Total Shipments', val: '1,248', trend: '+12%', positive: true, icon: Truck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                    { label: 'Active Warehouses', val: '24', trend: 'Stable', positive: true, icon: Map, color: 'text-blue-500', bg: 'bg-blue-50' },
-                    { label: 'Pending Alerts', val: '3', trend: '-2', positive: true, icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
-                    { label: 'Global Reach', val: '42', unit: 'Countries', positive: true, icon: Globe, color: 'text-purple-500', bg: 'bg-purple-50' }
+                    { label: 'Total Shipments', val: shipments.length.toLocaleString(), trend: `${shipments.filter(s=>s.status==='transit').length} in transit`, positive: true, icon: Truck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                    { label: 'Active Warehouses', val: warehouses.length.toLocaleString(), trend: warehouses.length > 0 ? 'Operational' : 'None yet', positive: true, icon: Map, color: 'text-blue-500', bg: 'bg-blue-50' },
+                    { label: 'Pending Alerts', val: notifications.filter(n=>n.id!=='all-clear').length.toString(), trend: notifications.some(n=>n.id==='out-of-stock') ? 'Critical' : 'Stable', positive: !notifications.some(n=>n.id==='out-of-stock'), icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
+                    { label: 'Inventory SKUs', val: inventoryItems.length.toLocaleString(), unit: 'items', positive: true, icon: Database, color: 'text-purple-500', bg: 'bg-purple-50' }
                   ].map((stat, i) => (
                     <motion.div 
                       key={i} variants={popIn}
@@ -1070,43 +1036,109 @@ export default function App({ user }) {
             {/* GLOBAL NETWORK TAB */}
             {activeTab === 'network' && (
               <motion.div key="network" variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }} className="max-w-[1600px] mx-auto space-y-8">
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                   <div>
-                    <h2 className="text-4xl font-black text-gray-900 tracking-tight">Warehouses</h2>
-                    <p className="text-gray-500 font-medium mt-2">Manage physical infrastructure across your Tier 2 and Tier 3 network.</p>
+                    <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">Warehouses</h2>
+                    <p className="text-gray-500 font-medium mt-2">Manage physical infrastructure across your supply network.</p>
                   </div>
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowWarehouseModal(true)} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all flex items-center">
-                    <Globe className="mr-2 w-5 h-5" /> Add Regional Warehouse
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowWarehouseModal(true)} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] transition-all flex items-center shrink-0">
+                    <Plus className="mr-2 w-5 h-5" /> Add Warehouse
                   </motion.button>
                 </div>
-                {whLoading ? (
-                  <div className="flex items-center justify-center py-24"><Loader2 className="w-10 h-10 text-blue-500 animate-spin" /><span className="ml-3 text-gray-500 font-semibold">Syncing network nodes...</span></div>
-                ) : warehouses.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-3xl border border-gray-100 shadow-sm">
-                    <Map className="w-16 h-16 text-gray-300 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-400">No active nodes</h3>
-                    <p className="text-gray-400 mt-2">Click "Add Regional Warehouse" to expand your supply network.</p>
+
+                {/* Two-column layout: portrait India map on left, warehouse cards on right */}
+                <div className="flex gap-6 items-start">
+
+                  {/* Portrait India Map — 380px wide so zoom 4 shows all of India */}
+                  <motion.div variants={popIn} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden shrink-0 relative z-0" style={{width:'50%', minWidth:'420px', height:'750px'}}>
+                    <MapContainer
+                      center={[23, 80]}
+                      zoom={4.5}
+                      minZoom={4}
+                      maxZoom={12}
+                      maxBounds={[[5.0, 65.0], [40.5, 98.0]]}
+                      maxBoundsViscosity={1.0}
+                      style={{ height: '100%', width: '100%' }}
+                      scrollWheelZoom={true}
+                    >
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      {warehouses.map((wh, idx) => {
+                        const cityCoords = {
+                          'mumbai': [19.076, 72.877], 'delhi': [28.6139, 77.209], 'bangalore': [12.9716, 77.5946],
+                          'bengaluru': [12.9716, 77.5946], 'chennai': [13.0827, 80.2707], 'kolkata': [22.5726, 88.3639],
+                          'hyderabad': [17.385, 78.4867], 'pune': [18.5204, 73.8567], 'ahmedabad': [23.0225, 72.5714],
+                          'jaipur': [26.9124, 75.7873], 'surat': [21.1702, 72.8311], 'lucknow': [26.8467, 80.9462],
+                          'kanpur': [26.4499, 80.3319], 'nagpur': [21.1458, 79.0882], 'indore': [22.7196, 75.8577],
+                          'bhopal': [23.2599, 77.4126], 'patna': [25.5941, 85.1376], 'vadodara': [22.3072, 73.1812],
+                          'coimbatore': [11.0168, 76.9558], 'agra': [27.1767, 78.0081], 'visakhapatnam': [17.6868, 83.2185],
+                          'kochi': [9.9312, 76.2673], 'guwahati': [26.1445, 91.7362], 'chandigarh': [30.7333, 76.7794],
+                          'bhubaneswar': [20.2961, 85.8245], 'amritsar': [31.634, 74.8723],
+                        };
+                        const key = (wh.city || wh.region || wh.name || '').toLowerCase();
+                        let coords = null;
+                        for (const city in cityCoords) {
+                          if (key.includes(city)) { coords = cityCoords[city]; break; }
+                        }
+                        if (!coords) coords = [20 + (idx % 4) * 3.5, 73 + (idx % 5) * 4];
+                        const icon = L.divIcon({
+                          className: '',
+                          html: `<div style="background:#2563eb;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;box-shadow:0 4px 16px rgba(37,99,235,0.5);border:3px solid white">${idx+1}</div>`,
+                          iconSize: [32, 32],
+                          iconAnchor: [16, 16],
+                        });
+                        return (
+                          <Marker key={wh.id} position={coords} icon={icon}>
+                            <Popup>
+                              <div style={{fontFamily:'Inter,sans-serif',minWidth:'150px'}}>
+                                <p style={{fontWeight:900,fontSize:'15px',marginBottom:'4px'}}>{wh.name}</p>
+                                <p style={{color:'#6b7280',fontSize:'12px',fontWeight:600}}>{wh.city || wh.region}</p>
+                                <p style={{color:'#2563eb',fontWeight:800,fontSize:'13px',marginTop:'6px'}}>Capacity: {Number(wh.capacity).toLocaleString()} units</p>
+                              </div>
+                            </Popup>
+                          </Marker>
+                        );
+                      })}
+                    </MapContainer>
+                  </motion.div>
+
+                  {/* Warehouse Cards — scrollable on the right */}
+                  <div className="flex-1 min-w-0" style={{maxHeight:'750px', overflowY:'auto'}}>
+                    {whLoading ? (
+                      <div className="flex items-center justify-center py-16"><Loader2 className="w-10 h-10 text-blue-500 animate-spin" /><span className="ml-3 text-gray-500 font-semibold">Syncing...</span></div>
+                    ) : warehouses.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center bg-white rounded-3xl border border-gray-100" style={{minHeight:'300px'}}>
+                        <Map className="w-16 h-16 text-gray-300 mb-4" />
+                        <h3 className="text-xl font-bold text-gray-400">No warehouses yet</h3>
+                        <p className="text-gray-400 mt-2 text-sm">Click "Add Warehouse" to pin your first location.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                        {warehouses.map((wh, idx) => (
+                          <motion.div key={wh.id} variants={popIn} whileHover={{ y: -4 }} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all flex flex-col justify-between">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">{idx+1}</div>
+                                <div>
+                                  <h3 className="text-base font-black text-gray-900 leading-tight">{wh.name}</h3>
+                                  <p className="text-xs font-semibold text-gray-500 flex items-center mt-0.5"><Globe className="w-3 h-3 mr-1" />{wh.city || wh.region}</p>
+                                </div>
+                              </div>
+                              <button onClick={() => deleteWarehouse(wh.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                            <div className="pt-3 border-t border-gray-50 flex justify-between items-center">
+                              <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Max Capacity</span>
+                              <span className="text-xl font-black text-blue-600">{Number(wh.capacity).toLocaleString()}</span>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {warehouses.map((wh) => (
-                      <motion.div key={wh.id} variants={popIn} whileHover={{ y: -8 }} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:shadow-xl hover:border-blue-200 transition-all flex flex-col justify-between">
-                        <div className="flex justify-between items-start mb-6">
-                          <div>
-                            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4"><Map className="w-6 h-6 text-blue-600" /></div>
-                            <h3 className="text-2xl font-bold text-gray-900 leading-tight">{wh.name}</h3>
-                            <p className="text-sm font-semibold text-gray-500 mt-1 flex items-center"><Globe className="w-4 h-4 mr-1" /> {wh.region}</p>
-                          </div>
-                          <button onClick={() => deleteWarehouse(wh.id)} className="p-2 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-xl transition-colors"><Trash2 className="w-5 h-5" /></button>
-                        </div>
-                        <div className="pt-4 border-t border-gray-50 flex justify-between items-end">
-                          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Max Capacity</span>
-                          <span className="text-3xl font-black text-blue-600">{Number(wh.capacity).toLocaleString()}</span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
+
+                </div>
               </motion.div>
             )}
             {showWarehouseModal && <AddWarehouseModal onClose={() => setShowWarehouseModal(false)} onAdd={addWarehouse} />}
