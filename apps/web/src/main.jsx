@@ -20,6 +20,9 @@ function Root() {
           email: currentUser.email,
           photoURL: currentUser.photoURL
         }));
+      } else {
+        // Reset landing page state when user logs out
+        setShowLanding(true);
       }
       setUser(currentUser);
       setLoading(false);
@@ -38,11 +41,15 @@ function Root() {
     );
   }
 
+  if (!user) {
+    return <Login />;
+  }
+
   if (showLanding) {
     return <Landing onStart={() => setShowLanding(false)} />;
   }
 
-  return user ? <App user={user} /> : <Login />;
+  return <App user={user} />;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
