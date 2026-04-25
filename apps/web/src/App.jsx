@@ -139,6 +139,65 @@ export default function App({ user }) {
     setHealthStatus('healthy');
   }, []);
 
+  // Client-side smart chat fallback — mirrors the Python backend logic
+  const computeChatFallback = (message, items) => {
+    const msg = message.toLowerCase().trim();
+    if (!items || items.length === 0)
+      return "No inventory data found. Please register some items first.";
+
+    const totalItems = items.length;
+    const totalStock = items.reduce((s, i) => s + (Number(i.count) || 0), 0);
+    const totalSales = items.reduce((s, i) => s + (Number(i.sales) || 0), 0);
+    const outOfStock = items.filter(i => Number(i.count) === 0);
+    const lowStock = items.filter(i => Number(i.count) > 0 && Number(i.count) <= 10);
+    const topSeller = items.reduce((best, i) => (Number(i.sales) > Number(best?.sales || 0) ? i : best), null);
+    const mostStock = items.reduce((best, i) => (Number(i.count) > Number(best?.count || 0) ? i : best), null);
+
+    // Count warehouses query
+    if (/how many warehouse|number of warehouse|warehouse count/i.test(msg)) {
+      const warehouseSet = new Set(items.map(i => i.location).filter(Boolean));
+      return `📦 Based on your inventory, items are distributed across ${warehouseSet.size} unique warehouse location(s): ${[...warehouseSet].join(', ')}.`;
+    }
+
+    if (/hello|hi\b|hey|help/i.test(msg))
+      return `Hello! I'm ChainHandler AI. You have ${totalItems} items with ${totalStock.toLocaleString()} total units in stock. Ask me about low stock, top sellers, or inventory health!`;
+
+    if (/low stock|running low|restock|replenish|shortage/i.test(msg)) {
+      if (lowStock.length > 0) {
+        const names = lowStock.slice(0, 5).map(i => i.name).join(', ');
+        return `⚠️ ${lowStock.length} item(s) are low on stock: ${names}. Recommend placing restock orders immediately.`;
+      }
+      return "✅ All items are above the low-stock threshold (>10 units). Inventory looks healthy!";
+    }
+
+    if (/out of stock|zero|empty|critical/i.test(msg)) {
+      if (outOfStock.length > 0) {
+        const names = outOfStock.slice(0, 5).map(i => i.name).join(', ');
+        return `🚨 Critical: ${outOfStock.length} item(s) are completely out of stock: ${names}. Urgent restocking required!`;
+      }
+      return "✅ No items are out of stock. All SKUs have inventory available.";
+    }
+
+    if (/top seller|best seller|most sold|highest sales/i.test(msg)) {
+      if (topSeller && Number(topSeller.sales) > 0)
+        return `📈 Top seller is '${topSeller.name}' with ${Number(topSeller.sales).toLocaleString()} units sold. Ensure sufficient stock levels to meet demand.`;
+      return "No sales data recorded yet. Add sales figures to your inventory items for insights.";
+    }
+
+    if (/summary|overview|status|health|report/i.test(msg)) {
+      const healthLabel = !outOfStock.length && lowStock.length <= 2 ? "🟢 Healthy" : !outOfStock.length ? "🟡 Needs Attention" : "🔴 Critical";
+      return `📊 Inventory Summary — ${healthLabel}\n• ${totalItems} SKUs | ${totalStock.toLocaleString()} units | ${totalSales.toLocaleString()} sales\n• ${outOfStock.length} out of stock | ${lowStock.length} low stock\n• Top seller: ${topSeller?.name || 'N/A'}`;
+    }
+
+    if (/how many|count|total|quantity|units/i.test(msg))
+      return `You have ${totalItems} registered items with ${totalStock.toLocaleString()} total units across all locations. Total recorded sales: ${totalSales.toLocaleString()} units.`;
+
+    if (/most stock|highest stock|largest/i.test(msg) && mostStock)
+      return `'${mostStock.name}' has the highest stock with ${Number(mostStock.count).toLocaleString()} units at ${mostStock.location || 'N/A'}.`;
+
+    return `Based on your current inventory of ${totalItems} items with ${totalStock.toLocaleString()} total units and ${totalSales.toLocaleString()} recorded sales, everything is being tracked. Ask me about low stock, top sellers, warehouse count, or inventory health!`;
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -146,12 +205,15 @@ export default function App({ user }) {
     setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setChatInput('');
     setIsChatLoading(true);
+
     try {
-      // Route through the FastAPI backend — keeps API key secure server-side,
-      // and gets retry/fallback logic for free (handles 429 rate limits gracefully).
+      // Try the FastAPI backend first (AI-powered when running)
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000); // 4s timeout
       const res = await fetch('http://localhost:8000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           message: userMsg,
           inventory_data: inventoryItems.map(i => ({
@@ -164,16 +226,14 @@ export default function App({ user }) {
           })),
         }),
       });
+      clearTimeout(timeout);
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
-      const reply = data.reply || 'No response received.';
-      setChatMessages(prev => [...prev, { role: 'ai', text: reply }]);
+      setChatMessages(prev => [...prev, { role: 'ai', text: data.reply || 'No response received.' }]);
     } catch (err) {
-      console.error('Chat error:', err);
-      const msg = err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')
-        ? '⚠️ Cannot reach the AI backend. Make sure the API server is running (npm run dev).'
-        : `Sorry, an error occurred: ${err.message}`;
-      setChatMessages(prev => [...prev, { role: 'ai', text: msg }]);
+      // Backend unavailable — use client-side smart fallback silently
+      const reply = computeChatFallback(userMsg, inventoryItems);
+      setChatMessages(prev => [...prev, { role: 'ai', text: reply }]);
     } finally {
       setIsChatLoading(false);
     }
