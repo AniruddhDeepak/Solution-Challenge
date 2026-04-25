@@ -764,7 +764,7 @@ export default function App({ user }) {
                 </div>
                 
                 {/* Interactive Metrics Grid — wired to real Firestore data */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
                   {[
                     { label: 'Total Shipments', val: shipments.length.toLocaleString(), trend: `${shipments.filter(s=>s.status==='transit').length} in transit`, positive: true, icon: Truck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Active Warehouses', val: warehouses.length.toLocaleString(), trend: warehouses.length > 0 ? 'Operational' : 'None yet', positive: true, icon: Map, color: 'text-blue-500', bg: 'bg-blue-50' },
@@ -1188,11 +1188,11 @@ export default function App({ user }) {
                   </motion.button>
                 </div>
 
-                {/* Two-column layout: portrait India map on left, warehouse cards on right */}
-                <div className="flex gap-6 items-start">
+                {/* Two-column layout: portrait India map on left, warehouse cards on right (stacks on mobile) */}
+                <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
 
-                  {/* Portrait India Map — 380px wide so zoom 4 shows all of India */}
-                  <motion.div variants={popIn} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden shrink-0 relative z-0" style={{width:'50%', minWidth:'420px', height:'750px'}}>
+                  {/* Portrait India Map */}
+                  <motion.div variants={popIn} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden shrink-0 relative z-0 w-full lg:w-1/2" style={{height:'750px'}}>
                     <MapContainer
                       center={[23, 80]}
                       zoom={4.5}
