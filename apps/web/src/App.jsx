@@ -69,6 +69,8 @@ export default function App({ user }) {
   const [chatMessages, setChatMessages] = useState([{ role: 'ai', text: 'Hi! I am your ChainHandler AI assistant. How can I help you optimize your supply chain today?' }]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isAiSearching, setIsAiSearching] = useState(false);
+  const [aiSearchResult, setAiSearchResult] = useState(null);
   const notificationsRef = useRef(null);
   const searchRef = useRef(null);
 
@@ -228,7 +230,54 @@ export default function App({ user }) {
     if (/most stock|highest stock|largest/i.test(msg) && mostStock)
       return `'${mostStock.name}' has the highest stock with ${Number(mostStock.count).toLocaleString()} units at ${mostStock.location || 'N/A'}.`;
 
+    // Website info queries
+    if (/what is|how to|about|features|control center|dashboard|inventory grid|network|analytics|shipments/i.test(msg)) {
+      if (msg.includes('control center') || msg.includes('dashboard')) return "The Control Center is your dashboard for real-time monitoring of global supply chain telemetry. It shows total shipments, active warehouses, and pending alerts.";
+      if (msg.includes('inventory grid')) return "The Inventory Grid lets you manage products, filter by category, and deploy items to shipments.";
+      if (msg.includes('warehouse') || msg.includes('network')) return "The Warehouses page (Global Network) shows an interactive map of your physical infrastructure across India.";
+      if (msg.includes('analytics')) return "The Data Analytics section uses AI to provide deep insights into your supply chain efficiency.";
+      if (msg.includes('shipment')) return "The Shipments page tracks real-time logistics and dispatch status (Pending, In Transit, Delivered).";
+      return "ChainHandler is a professional supply chain platform for tracking inventory, warehouses, and shipments with AI-powered insights.";
+    }
+
     return `Based on your current inventory of ${totalItems} items with ${totalStock.toLocaleString()} total units and ${totalSales.toLocaleString()} recorded sales, everything is being tracked. Ask me about low stock, top sellers, warehouse count, or inventory health!`;
+  };
+
+  const handleAiSearch = async (query) => {
+    if (!query.trim()) return;
+    setIsAiSearching(true);
+    setAiSearchResult(null);
+    setShowSearchResults(true);
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          message: query,
+          inventory_data: inventoryItems.map(i => ({
+            id: i.id || '',
+            name: i.name,
+            count: Number(i.count) || 0,
+            type: i.type || 'General',
+            sales: Number(i.sales) || 0,
+            status: i.status || 'Normal',
+          })),
+        }),
+      });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      setAiSearchResult(data.reply);
+    } catch (err) {
+      const fallback = computeChatFallback(query, inventoryItems);
+      setAiSearchResult(fallback);
+    } finally {
+      setIsAiSearching(false);
+    }
   };
 
   const handleSendMessage = async (e) => {
@@ -390,15 +439,15 @@ export default function App({ user }) {
   const downloadReport = () => {
     const now = new Date();
     const lines = [
-      'ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ',
-      '           CHAINHANDLER ΓÇö SUPPLY CHAIN REPORT',
-      'ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ',
+      '===========================================================',
+      '           CHAINHANDLER — SUPPLY CHAIN REPORT',
+      '===========================================================',
       `  Generated: ${now.toLocaleString()}`,
       `  Prepared for: ${user?.displayName || 'Admin'}`,
       '',
-      'ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ',
+      '-----------------------------------------------------------',
       '  EXECUTIVE SUMMARY',
-      'ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ',
+      '-----------------------------------------------------------',
       `  Total Registered Items:  ${reportData.totalItems}`,
       `  Total Units in Stock:    ${reportData.totalUnits.toLocaleString()}`,
       `  Total Sales Recorded:    ${reportData.totalSales.toLocaleString()}`,
@@ -406,9 +455,9 @@ export default function App({ user }) {
       `  Low Stock Warnings:      ${reportData.lowStock.length}`,
       `  Out of Stock (Critical): ${reportData.outOfStock.length}`,
       '',
-      'ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ',
+      '-----------------------------------------------------------',
       '  INVENTORY BREAKDOWN',
-      'ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ',
+      '-----------------------------------------------------------',
     ];
     inventoryItems.forEach((item, idx) => {
       lines.push(`  ${idx + 1}. ${item.name}`);
@@ -416,31 +465,31 @@ export default function App({ user }) {
     });
     if (reportData.topLocations.length > 0) {
       lines.push('');
-      lines.push('ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ');
+      lines.push('-----------------------------------------------------------');
       lines.push('  ITEMS BY LOCATION');
-      lines.push('ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ');
+      lines.push('-----------------------------------------------------------');
       reportData.topLocations.forEach(([loc, count]) => {
         lines.push(`  ${loc}: ${count} item(s)`);
       });
     }
     if (reportData.outOfStock.length > 0) {
       lines.push('');
-      lines.push('ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ');
-      lines.push('  ΓÜá CRITICAL: OUT OF STOCK');
-      lines.push('ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ');
-      reportData.outOfStock.forEach(i => lines.push(`  ΓÇó ${i.name} ΓÇö ${i.location}`));
+      lines.push('-----------------------------------------------------------');
+      lines.push('  ⚠️ CRITICAL: OUT OF STOCK');
+      lines.push('-----------------------------------------------------------');
+      reportData.outOfStock.forEach(i => lines.push(`  • ${i.name} — ${i.location}`));
     }
     if (reportData.lowStock.length > 0) {
       lines.push('');
-      lines.push('ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ');
-      lines.push('  ΓÜá WARNING: LOW STOCK');
-      lines.push('ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ');
-      reportData.lowStock.forEach(i => lines.push(`  ΓÇó ${i.name} (${i.count} remaining) ΓÇö ${i.location}`));
+      lines.push('-----------------------------------------------------------');
+      lines.push('  ⚠️ WARNING: LOW STOCK');
+      lines.push('-----------------------------------------------------------');
+      reportData.lowStock.forEach(i => lines.push(`  • ${i.name} (${i.count} remaining) — ${i.location}`));
     }
     lines.push('');
-    lines.push('ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ');
+    lines.push('===========================================================');
     lines.push('                    END OF REPORT');
-    lines.push('ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ');
+    lines.push('===========================================================');
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -610,8 +659,14 @@ export default function App({ user }) {
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setShowSearchResults(true);
+                setAiSearchResult(null); // Reset AI result when typing
               }}
               onFocus={() => setShowSearchResults(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleAiSearch(searchQuery);
+                }
+              }}
             />
 
             {/* Search Dropdown */}
@@ -621,8 +676,51 @@ export default function App({ user }) {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50 max-h-[400px] overflow-y-auto"
+                  className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50 max-h-[500px] overflow-y-auto"
                 >
+                  {/* AI INSIGHT SECTION */}
+                  {(isAiSearching || aiSearchResult) && (
+                    <div className="p-4 bg-gradient-to-br from-emerald-50 to-white border-b border-gray-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                            <Activity className="w-4 h-4 text-white" />
+                          </div>
+                          <span className="text-sm font-black text-emerald-800 uppercase tracking-tight">AI Insight</span>
+                        </div>
+                        {isAiSearching && <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />}
+                      </div>
+                      <div className="text-sm font-medium text-gray-700 leading-relaxed">
+                        {isAiSearching ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="h-3 bg-emerald-100 rounded-full w-full animate-pulse"></div>
+                            <div className="h-3 bg-emerald-100 rounded-full w-4/5 animate-pulse"></div>
+                          </div>
+                        ) : (
+                          <motion.p
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-gray-700"
+                          >
+                            {aiSearchResult}
+                          </motion.p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {!isAiSearching && !aiSearchResult && searchQuery.trim().length > 3 && (
+                    <div className="p-3 border-b border-gray-50 flex justify-center">
+                      <button
+                        onClick={() => handleAiSearch(searchQuery)}
+                        className="w-full flex items-center justify-center space-x-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all group"
+                      >
+                        <Search className="w-4 h-4" />
+                        <span>Ask AI about "{searchQuery}"</span>
+                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </div>
+                  )}
                   {searchResults.navigation.length > 0 && (
                     <div className="p-2 border-b border-gray-100 last:border-0">
                       <div className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2">Navigation</div>
@@ -655,7 +753,7 @@ export default function App({ user }) {
                           <Box className="w-5 h-5 text-gray-400 group-hover/item:text-emerald-600 mr-3" />
                           <div>
                             <p className="font-bold text-gray-700 group-hover/item:text-emerald-700">{item.name}</p>
-                            <p className="text-xs text-gray-500 font-medium">Loc: {item.location} ΓÇó Qty: {item.count}</p>
+                            <p className="text-xs text-gray-500 font-medium">Loc: {item.location} • Qty: {item.count}</p>
                           </div>
                         </div>
                       ))}

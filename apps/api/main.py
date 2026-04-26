@@ -19,6 +19,45 @@ if api_key:
     except Exception as e:
         print(f"Could not init Gemini client: {e}")
 
+WEBSITE_CONTEXT = """
+ChainHandler Application Overview:
+ChainHandler is a high-fidelity logistics and supply chain management platform.
+
+Key Features & Pages:
+1. Control Center (Dashboard):
+   - Real-time monitoring of global supply chain telemetry.
+   - Metrics: Total Shipments, Active Warehouses, Pending Alerts, Inventory SKUs.
+   - Visuals: Shipment Volume chart (interactive area chart) and Recent Activity log.
+   - Quick Actions: Generate comprehensive supply chain reports.
+
+2. Inventory Grid:
+   - Detailed management of products and stock.
+   - Categorization: Electronics, Raw Materials, Consumables, Hardware, Automotive, and more.
+   - Functions: Register New Items, Filter by Category, Search by Name/ID/Location/Quantity.
+   - Deployment: Ability to deploy items directly from inventory into shipments.
+   - Restocking: Tools to increase stock levels for low-inventory items.
+
+3. Warehouses (Network):
+   - Physical infrastructure management.
+   - Features: Interactive India Map with warehouse markers, Capacity tracking, and Regional data.
+   - Action: Add new warehouse nodes to the network.
+
+4. Data Analytics:
+   - AI-powered data insights using the DataAnalyzer component.
+   - Provides deep dives into supply chain efficiency and stock health.
+
+5. Shipments:
+   - Tracking real-time logistics.
+   - Statuses: Pending Dispatch, In Transit, Delivered.
+   - Actions: Create new shipments, dispatch pending orders, and delete records.
+
+General Info:
+- The platform uses a vibrant emerald-green theme (Emerald-600/700).
+- Built with React, Vite, Tailwind CSS, and FastAPI.
+- Uses Firebase/Firestore for real-time data persistence.
+- Powered by Google Gemini AI for supply chain intelligence and chat assistance.
+"""
+
 app = FastAPI(title="ChainHandler API")
 
 app.add_middleware(
@@ -271,13 +310,23 @@ async def chat_assistant(request: ChatRequest):
     if client:
         inventory_context = json.dumps(inventory_data)
         prompt = f"""
-    You are 'ChainHandler AI', a professional Supply Chain Assistant.
-    Answer the user's query based on the following current inventory data:
+    You are 'ChainHandler AI', a professional Supply Chain and Application Assistant.
+    Answer the user's query based on the following information:
+
+    APPLICATION CONTEXT:
+    {WEBSITE_CONTEXT}
+
+    CURRENT INVENTORY DATA:
     {inventory_context}
 
     User Query: {request.message}
 
-    Provide a concise, actionable, and professional response. Keep it brief (under 100 words if possible). Use plain text.
+    Instructions:
+    1. If the user asks about how to use the website or its features, use the APPLICATION CONTEXT.
+    2. If the user asks about specific items, stock, or logistics, use the CURRENT INVENTORY DATA.
+    3. Provide a concise, actionable, and professional response. 
+    4. Keep it brief (under 100 words if possible). 
+    5. Use plain text.
     """
         # Try each model with exponential backoff retries (handles free-tier RPM limits)
         models_to_try = ["gemini-2.0-flash", "gemini-1.5-flash"]
