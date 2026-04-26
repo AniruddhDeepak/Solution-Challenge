@@ -67,23 +67,25 @@ export default function Login() {
     checkRedirect();
   }, []);
 
-  const handleGoogleSignIn = async (emailHint = null) => {
-    const isHosted = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-    
+  const handleGoogleSignIn = async () => {
     setIsAuthenticating(true);
     setError(null);
     try {
-      if (emailHint) {
-        provider.setCustomParameters({ login_hint: emailHint });
-      } else {
-        provider.setCustomParameters({ prompt: 'select_account' });
-      }
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await setPersistence(auth, stayLoggedIn ? browserLocalPersistence : browserSessionPersistence);
       
-      // Use Redirect for the live site to avoid mobile/browser popup blockers
-      if (isHosted) {
-        await signInWithRedirect(auth, provider);
-      } else {
+      try {
+        // Try popup first (best UX)
         await signInWithPopup(auth, provider);
+      } catch (popupError) {
+        // If blocked or restricted, fallback to Redirect
+        if (popupError.code === 'auth/popup-blocked' || 
+            popupError.code === 'auth/cancelled-popup-request' ||
+            popupError.code === 'auth/popup-closed-by-user') {
+          await signInWithRedirect(auth, provider);
+        } else {
+          throw popupError;
+        }
       }
     } catch (error) {
       console.error('Sign-in error:', error);
