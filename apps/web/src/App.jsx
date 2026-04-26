@@ -784,7 +784,7 @@ export default function App({ user }) {
                     <motion.div
                       key={i} variants={popIn}
                       whileHover={{ y: -8, scale: 1.02 }}
-                      className="bg-white p-8 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] flex flex-col justify-between group cursor-pointer overflow-hidden relative transition-all"
+                      className="bg-white p-8 rounded-3xl border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] flex flex-col justify-between group cursor-pointer overflow-hidden relative transition-all"
                     >
                       {/* Subtle hover gradient */}
                       <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -815,7 +815,7 @@ export default function App({ user }) {
                 {/* Main Interactive Charts Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Shipments Volume Chart */}
-                  <motion.div variants={popIn} className="lg:col-span-2 bg-white p-8 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all">
+                  <motion.div variants={popIn} className="lg:col-span-2 bg-white p-8 rounded-3xl border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all">
                     <div className="flex justify-between items-center mb-8">
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 tracking-tight">Shipment Volume</h3>
@@ -858,7 +858,7 @@ export default function App({ user }) {
                   </motion.div>
 
                   {/* Recent Activity Window */}
-                  <motion.div variants={popIn} className="bg-white p-8 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all flex flex-col h-full overflow-hidden">
+                  <motion.div variants={popIn} className="bg-white p-8 rounded-3xl border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all flex flex-col h-full overflow-hidden">
                     <div className="flex justify-between items-center mb-8">
                       <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
                     </div>
@@ -1012,7 +1012,7 @@ export default function App({ user }) {
                         return (
                           <motion.div key={group.category} variants={popIn}>
                             {/* Category Header */}
-                            <div className={`flex items-center justify-between mb-8 p-6 rounded-3xl ${cfg.bg} border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]`}>
+                            <div className={`flex items-center justify-between mb-8 p-6 rounded-3xl ${cfg.bg} border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]`}>
                               <div className="flex items-center">
                                 <div className={`p-3 rounded-xl bg-white border border-gray-200 shadow-sm mr-4`}>
                                   <CatIcon className={`w-6 h-6 ${cfg.color}`} />
@@ -1031,7 +1031,7 @@ export default function App({ user }) {
                                   key={item.id}
                                   whileHover={{ y: -6, scale: 1.02 }}
                                   onClick={() => setSelectedInventory(item)}
-                                  className={`bg-white rounded-3xl border-2 ${selectedInventory?.id === item.id ? 'border-emerald-500 shadow-[6px_6px_0px_0px_rgba(16,185,129,0.3)]' : 'border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)]'} p-8 cursor-pointer transition-all flex flex-col justify-between min-h-[260px] relative overflow-hidden group`}
+                                  className={`bg-white rounded-3xl border-2 ${selectedInventory?.id === item.id ? 'border-emerald-500 shadow-[6px_6px_0px_0px_rgba(16,185,129,0.3)]' : 'border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)]'} p-8 cursor-pointer transition-all flex flex-col justify-between min-h-[260px] relative overflow-hidden group`}
                                 >
                                   <div className="flex justify-between items-start mb-4 relative z-10">
                                     <div>
@@ -1318,7 +1318,7 @@ export default function App({ user }) {
                     ) : (
                       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                         {warehouses.map((wh, idx) => (
-                          <motion.div key={wh.id} variants={popIn} whileHover={{ y: -4 }} className="bg-white p-6 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all flex flex-col justify-between group">
+                          <motion.div key={wh.id} variants={popIn} whileHover={{ y: -4 }} className="bg-white p-6 rounded-3xl border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all flex flex-col justify-between group">
                             <div className="flex justify-between items-start mb-6">
                               <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-sm group-hover:scale-110 transition-transform">{idx + 1}</div>
@@ -1367,7 +1367,7 @@ export default function App({ user }) {
                 {/* Add Shipment Form */}
                 <AnimatePresence>
                   {showAddShipment && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-blue-50 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] rounded-3xl p-8 mb-6 overflow-hidden">
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-blue-50 border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] rounded-3xl p-8 mb-6 overflow-hidden">
                       <h3 className="text-2xl font-black text-gray-900 mb-6">Create New Shipment</h3>
                       <form onSubmit={handleAddShipment} className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="col-span-2 md:col-span-1">
@@ -1408,14 +1408,14 @@ export default function App({ user }) {
                   )}
                 </AnimatePresence>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-gray-50 rounded-3xl p-6 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]">
+                  <div className="bg-gray-50 rounded-3xl p-6 border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="font-bold text-gray-700 flex items-center"><Clock className="w-5 h-5 mr-2 text-amber-500" /> Pending Dispatch</h3>
                       <span className="bg-amber-100 text-amber-700 text-sm font-bold px-3 py-1 rounded-full">{shipments.filter(s => s.status === 'pending').length}</span>
                     </div>
                     <div className="space-y-4">
                       {shipments.filter(s => s.status === 'pending').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-6 rounded-2xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all">
+                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-6 rounded-2xl border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all">
                           <div>
                             <div className="flex justify-between items-start mb-2">
                               <h4 className="font-black text-xl text-gray-900 mb-1">{s.itemName}</h4>
@@ -1431,7 +1431,7 @@ export default function App({ user }) {
                       ))}
                     </div>
                   </div>
-                  <div className="bg-gray-50 rounded-3xl p-6 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]">
+                  <div className="bg-gray-50 rounded-3xl p-6 border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="font-bold text-gray-700 flex items-center"><Truck className="w-5 h-5 mr-2 text-blue-500" /> In Transit</h3>
                       <span className="bg-blue-100 text-blue-700 text-sm font-bold px-3 py-1 rounded-full">{shipments.filter(s => s.status === 'transit').length}</span>
@@ -1440,7 +1440,7 @@ export default function App({ user }) {
                       {shipments.filter(s => s.status === 'transit').map(s => {
                         const isDelayed = s.etaDate && new Date() > new Date(s.etaDate);
                         return (
-                          <motion.div key={s.id} layoutId={s.id} className={`bg-white p-6 rounded-2xl border-2 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all ${isDelayed ? 'border-red-500 bg-red-50/30' : 'border-gray-900'}`}>
+                          <motion.div key={s.id} layoutId={s.id} className={`bg-white p-6 rounded-2xl border-2 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all ${isDelayed ? 'border-red-500 bg-red-50/30' : 'border-gray-300'}`}>
                             <div>
                               <div className="flex justify-between items-start mb-2">
                                 <h4 className="font-black text-xl text-gray-900 mb-1">{s.itemName}</h4>
@@ -1462,14 +1462,14 @@ export default function App({ user }) {
                       })}
                     </div>
                   </div>
-                  <div className="bg-gray-50 rounded-3xl p-6 border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]">
+                  <div className="bg-gray-50 rounded-3xl p-6 border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)]">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="font-bold text-gray-700 flex items-center"><PackageCheck className="w-5 h-5 mr-2 text-emerald-500" /> Delivered</h3>
                       <span className="bg-emerald-100 text-emerald-700 text-sm font-bold px-3 py-1 rounded-full">{shipments.filter(s => s.status === 'delivered').length}</span>
                     </div>
                     <div className="space-y-4">
                       {shipments.filter(s => s.status === 'delivered').map(s => (
-                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-6 rounded-2xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all opacity-80">
+                        <motion.div key={s.id} layoutId={s.id} className="bg-white p-6 rounded-2xl border-2 border-gray-300 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all opacity-80">
                           <div>
                             <div className="flex justify-between items-start mb-2">
                               <h4 className="font-black text-xl text-gray-900 mb-1">{s.itemName}</h4>
