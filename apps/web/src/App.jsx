@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -11,14 +11,14 @@ import { useShipments } from './hooks/useShipments';
 import AddItemModal from './AddItemModal';
 import AddWarehouseModal from './AddWarehouseModal';
 import DataAnalyzer from './DataAnalyzer';
-import { 
-  BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2, 
+import {
+  BarChart3, Box, Activity, Map, Globe, Truck, CheckCircle2,
   Settings, LogOut, Search, Bell, AlertTriangle, FileText,
   ChevronRight, ArrowUpRight, TrendingUp, Database, Terminal, Trash2, Loader2,
   Download, X, ClipboardList, Layers, ChevronDown, Cpu, Flame, Wrench, Car, HelpCircle, Package, Filter,
   Target, MessageCircle, Send, Bot, Clock, PackageCheck, Leaf, Wind, Zap, CalendarClock, TriangleAlert, Plus
 } from 'lucide-react';
-import { 
+import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar
 } from 'recharts';
@@ -29,12 +29,12 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const Counter = ({ value, suffix = "" }) => {
   const [displayValue, setDisplayValue] = useState(0);
   const target = parseInt(value.toString().replace(/,/g, ""));
-  
+
   useEffect(() => {
     let start = 0;
     const duration = 1000;
     const increment = target / (duration / 16);
-    
+
     const timer = setInterval(() => {
       start += increment;
       if (start >= target) {
@@ -44,7 +44,7 @@ const Counter = ({ value, suffix = "" }) => {
         setDisplayValue(Math.floor(start));
       }
     }, 16);
-    
+
     return () => clearInterval(timer);
   }, [target]);
 
@@ -92,7 +92,7 @@ export default function App({ user }) {
 
   const notifications = useMemo(() => {
     const alerts = [];
-    
+
     // Out of stock items
     const outOfStockItems = inventoryItems.filter(item => Number(item.count) === 0);
     if (outOfStockItems.length > 0) {
@@ -154,9 +154,9 @@ export default function App({ user }) {
     return alerts;
   }, [inventoryItems]);
 
-  const networkTraffic = Array.from({ length: 20 }, (_, i) => ({ 
-    time: `${i}:00`, 
-    volume: Math.floor(Math.random() * 500) + 1200 
+  const networkTraffic = Array.from({ length: 20 }, (_, i) => ({
+    time: `${i}:00`,
+    volume: Math.floor(Math.random() * 500) + 1200
   }));
 
   const emissionsData = [
@@ -491,9 +491,9 @@ export default function App({ user }) {
 
   return (
     <div className="min-h-screen bg-white text-gray-800 flex font-sans overflow-hidden">
-      
+
       {/* VIBRANT GREEN SIDEBAR */}
-      <motion.aside 
+      <motion.aside
         initial={{ x: -200 }} animate={{ x: 0 }} transition={{ type: "spring", stiffness: 100 }}
         className="w-24 lg:w-72 bg-gradient-to-b from-emerald-600 to-emerald-700 text-white flex flex-col justify-between shrink-0 relative z-20 shadow-xl overflow-hidden"
       >
@@ -503,7 +503,7 @@ export default function App({ user }) {
 
         <div className="relative z-10 w-full">
           <div className="flex items-center justify-center lg:justify-start px-4 lg:px-8 h-24 mb-6 border-b border-white/10">
-            <motion.div 
+            <motion.div
               whileHover={{ rotate: 180 }} transition={{ duration: 0.5 }}
               className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg"
             >
@@ -524,11 +524,10 @@ export default function App({ user }) {
                 whileHover={{ scale: 1.05, x: 5 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center px-4 py-4 rounded-2xl transition-all duration-300 relative overflow-hidden ${
-                  activeTab === item.id 
-                    ? 'bg-white text-emerald-700 shadow-[0_10px_25px_rgba(0,0,0,0.15)] font-bold' 
+                className={`w-full flex items-center px-4 py-4 rounded-2xl transition-all duration-300 relative overflow-hidden ${activeTab === item.id
+                    ? 'bg-white text-emerald-700 shadow-[0_10px_25px_rgba(0,0,0,0.15)] font-bold'
                     : 'text-white/80 hover:bg-white/10 hover:text-white font-medium'
-                }`}
+                  }`}
               >
                 {activeTab === item.id && (
                   <motion.div layoutId="navIndicator" className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-emerald-500 rounded-r-md"></motion.div>
@@ -560,7 +559,7 @@ export default function App({ user }) {
 
       {/* Main Content Area - PURE WHITE BACKGROUND */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50/50 relative">
-        
+
         {/* Dynamic Abstract Green Splash across the background */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-100/50 rounded-full blur-[100px] pointer-events-none transition-transform duration-[10s] animate-pulse"></div>
         <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-emerald-100/30 rounded-full blur-[80px] pointer-events-none"></div>
@@ -571,22 +570,22 @@ export default function App({ user }) {
             <motion.div
               key={i}
               className="absolute bg-emerald-400 rounded-full blur-md"
-              initial={{ 
-                x: Math.random() * 100 + "%", 
-                y: Math.random() * 100 + "%", 
-                width: Math.random() * 20 + 10, 
+              initial={{
+                x: Math.random() * 100 + "%",
+                y: Math.random() * 100 + "%",
+                width: Math.random() * 20 + 10,
                 height: Math.random() * 20 + 10,
                 opacity: 0.2
               }}
-              animate={{ 
+              animate={{
                 x: [Math.random() * 100 + "%", Math.random() * 100 + "%"],
                 y: [Math.random() * 100 + "%", Math.random() * 100 + "%"],
                 opacity: [0.1, 0.3, 0.1]
               }}
-              transition={{ 
-                duration: Math.random() * 20 + 10, 
-                repeat: Infinity, 
-                ease: "linear" 
+              transition={{
+                duration: Math.random() * 20 + 10,
+                repeat: Infinity,
+                ease: "linear"
               }}
             />
           ))}
@@ -596,9 +595,9 @@ export default function App({ user }) {
         <header className="relative h-24 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between px-10 z-50 shrink-0 shadow-sm">
           <div className="flex items-center w-full max-w-xl relative group" ref={searchRef}>
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-emerald-500 w-5 h-5 group-hover:scale-110 transition-transform" />
-            <input 
-              type="text" 
-              placeholder="Search active shipments, warehouse nodes, or reports..." 
+            <input
+              type="text"
+              placeholder="Search active shipments, warehouse nodes, or reports..."
               className="w-full pl-12 pr-6 py-3.5 bg-gray-50 border-none rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-emerald-500/20 text-gray-700 transition-all shadow-inner placeholder-gray-400"
               value={searchQuery}
               onChange={(e) => {
@@ -661,10 +660,10 @@ export default function App({ user }) {
           </div>
           <div className="flex items-center space-x-6">
             <div className="relative" ref={notificationsRef}>
-              <motion.button 
+              <motion.button
                 onClick={() => setShowNotifications(!showNotifications)}
-                whileHover={{ scale: 1.1, rotate: 10 }} 
-                whileTap={{ scale: 0.9 }} 
+                whileHover={{ scale: 1.1, rotate: 10 }}
+                whileTap={{ scale: 0.9 }}
                 className="relative p-3 bg-white hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 rounded-xl shadow-sm border border-gray-100 transition-colors"
               >
                 <Bell className="w-6 h-6" />
@@ -672,10 +671,10 @@ export default function App({ user }) {
                   <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
                 )}
               </motion.button>
-              
+
               <AnimatePresence>
                 {showNotifications && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -709,10 +708,10 @@ export default function App({ user }) {
             </div>
             <div className="h-10 w-px bg-gray-200"></div>
             <motion.div whileHover={{ scale: 1.05 }} className="flex items-center space-x-4 cursor-pointer bg-white p-2 rounded-2xl shadow-sm border border-gray-100 px-4">
-              <img 
-                src={user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'User')}&background=10b981&color=fff`} 
-                alt="Profile" 
-                className="w-10 h-10 rounded-xl border border-gray-100 object-cover" 
+              <img
+                src={user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || 'User')}&background=10b981&color=fff`}
+                alt="Profile"
+                className="w-10 h-10 rounded-xl border border-gray-100 object-cover"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   e.target.onerror = null;
@@ -737,10 +736,10 @@ export default function App({ user }) {
         {/* Dynamic View Container */}
         <div className="flex-1 overflow-y-auto p-10 scroll-smooth pb-32">
           <AnimatePresence mode="wait">
-            
+
             {/* OVERVIEW TAB */}
             {activeTab === 'dashboard' && (
-              <motion.div 
+              <motion.div
                 key="dashboard"
                 variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0, y: -20 }}
                 className="max-w-[1600px] mx-auto space-y-8"
@@ -750,10 +749,10 @@ export default function App({ user }) {
                     <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">Overview</h2>
                     <p className="text-gray-500 font-medium mt-2">Monitor your global supply chain telemetry in real-time.</p>
                   </div>
-                  <motion.button 
-                    onClick={generateReport} 
-                    whileHover={{ scale: 1.05, y: -2 }} 
-                    whileTap={{ scale: 0.95 }} 
+                  <motion.button
+                    onClick={generateReport}
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
                     className="relative overflow-hidden px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] transition-all flex items-center group"
                   >
                     {/* Button Shimmer */}
@@ -762,46 +761,46 @@ export default function App({ user }) {
                       animate={{ x: ['-100%', '200%'] }}
                       transition={{ duration: 2, repeat: Infinity, ease: 'linear', repeatDelay: 1 }}
                     />
-                    <TrendingUp className="mr-2 w-5 h-5 relative z-10" /> 
+                    <TrendingUp className="mr-2 w-5 h-5 relative z-10" />
                     <span className="relative z-10">Generate Report</span>
                   </motion.button>
                 </div>
-                
+
                 {/* Interactive Metrics Grid — wired to real Firestore data */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
                   {[
-                    { label: 'Total Shipments', val: shipments.length.toLocaleString(), trend: `${shipments.filter(s=>s.status==='transit').length} in transit`, positive: true, icon: Truck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                    { label: 'Total Shipments', val: shipments.length.toLocaleString(), trend: `${shipments.filter(s => s.status === 'transit').length} in transit`, positive: true, icon: Truck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                     { label: 'Active Warehouses', val: warehouses.length.toLocaleString(), trend: warehouses.length > 0 ? 'Operational' : 'None yet', positive: true, icon: Map, color: 'text-blue-500', bg: 'bg-blue-50' },
-                    { label: 'Pending Alerts', val: notifications.filter(n=>n.id!=='all-clear').length.toString(), trend: notifications.some(n=>n.id==='out-of-stock') ? 'Critical' : 'Stable', positive: !notifications.some(n=>n.id==='out-of-stock'), icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
+                    { label: 'Pending Alerts', val: notifications.filter(n => n.id !== 'all-clear').length.toString(), trend: notifications.some(n => n.id === 'out-of-stock') ? 'Critical' : 'Stable', positive: !notifications.some(n => n.id === 'out-of-stock'), icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
                     { label: 'Inventory SKUs', val: inventoryItems.length.toLocaleString(), unit: 'items', positive: true, icon: Database, color: 'text-purple-500', bg: 'bg-purple-50' }
                   ].map((stat, i) => (
-                    <motion.div 
+                    <motion.div
                       key={i} variants={popIn}
                       whileHover={{ y: -8, scale: 1.02 }}
                       className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] flex flex-col justify-between group cursor-pointer overflow-hidden relative"
                     >
-                       {/* Subtle hover gradient */}
-                       <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       
-                       <div className="relative z-10 flex justify-between items-start mb-6">
-                          <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">{stat.label}</span>
-                          <div className={`p-3 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform duration-300`}>
-                             <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                          </div>
-                       </div>
-                       <div className="relative z-10 flex items-end justify-between">
-                          <div className="flex items-baseline space-x-1">
-                             <h3 className="text-5xl font-black text-gray-900 tracking-tighter">
-                               <Counter value={stat.val} suffix={stat.unit ? "" : ""} />
-                             </h3>
-                             {stat.unit && <span className="text-base text-gray-500 font-bold">{stat.unit}</span>}
-                          </div>
-                          {stat.trend && (
-                            <span className={`text-sm font-bold px-3 py-1.5 rounded-lg ${stat.positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                               {stat.trend}
-                            </span>
-                          )}
-                       </div>
+                      {/* Subtle hover gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-white via-white to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                      <div className="relative z-10 flex justify-between items-start mb-6">
+                        <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">{stat.label}</span>
+                        <div className={`p-3 rounded-2xl ${stat.bg} group-hover:scale-110 transition-transform duration-300`}>
+                          <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                        </div>
+                      </div>
+                      <div className="relative z-10 flex items-end justify-between">
+                        <div className="flex items-baseline space-x-1">
+                          <h3 className="text-5xl font-black text-gray-900 tracking-tighter">
+                            <Counter value={stat.val} suffix={stat.unit ? "" : ""} />
+                          </h3>
+                          {stat.unit && <span className="text-base text-gray-500 font-bold">{stat.unit}</span>}
+                        </div>
+                        {stat.trend && (
+                          <span className={`text-sm font-bold px-3 py-1.5 rounded-lg ${stat.positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {stat.trend}
+                          </span>
+                        )}
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -811,17 +810,17 @@ export default function App({ user }) {
                   {/* Shipments Volume Chart */}
                   <motion.div variants={popIn} className="lg:col-span-2 bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-20px_rgba(16,185,129,0.15)] transition-shadow">
                     <div className="flex justify-between items-center mb-8">
-                       <div>
-                         <h3 className="text-xl font-bold text-gray-900 tracking-tight">Shipment Volume</h3>
-                         <p className="text-sm text-gray-500 mt-1 font-medium">Daily logistics throughput across all connected nodes.</p>
-                       </div>
-                       <button className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl font-semibold transition flex items-center">
-                          Last 24 Hours <ChevronRight className="w-4 h-4 ml-2" />
-                       </button>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 tracking-tight">Shipment Volume</h3>
+                        <p className="text-sm text-gray-500 mt-1 font-medium">Daily logistics throughput across all connected nodes.</p>
+                      </div>
+                      <button className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl font-semibold transition flex items-center">
+                        Last 24 Hours <ChevronRight className="w-4 h-4 ml-2" />
+                      </button>
                     </div>
                     <div className="h-80 w-full relative">
                       {/* Interactive scan line across the chart */}
-                      <motion.div 
+                      <motion.div
                         className="absolute left-0 right-0 h-px bg-emerald-500/10 z-10 pointer-events-none"
                         animate={{ top: ['0%', '100%', '0%'] }}
                         transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
@@ -830,11 +829,11 @@ export default function App({ user }) {
                         <AreaChart data={networkTraffic} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <defs>
                             <linearGradient id="colTraffic" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
                               <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}>
                                 <animate attributeName="stop-opacity" values="0.4;0.2;0.4" dur="3s" repeatCount="indefinite" />
                               </stop>
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                             </linearGradient>
                             {/* Animated pattern def for extra detail */}
                             <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -842,9 +841,9 @@ export default function App({ user }) {
                             </pattern>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                          <XAxis dataKey="time" stroke="#9ca3af" tick={{fontFamily: 'Inter', fontWeight: 600}} axisLine={false} tickLine={false} dy={10} />
-                          <YAxis stroke="#9ca3af" tick={{fontFamily: 'Inter', fontWeight: 600}} axisLine={false} tickLine={false} />
-                          <Tooltip cursor={{stroke: '#10b981', strokeWidth: 1, strokeDasharray: '4 4'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', fontWeight: 'bold' }} />
+                          <XAxis dataKey="time" stroke="#9ca3af" tick={{ fontFamily: 'Inter', fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
+                          <YAxis stroke="#9ca3af" tick={{ fontFamily: 'Inter', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                          <Tooltip cursor={{ stroke: '#10b981', strokeWidth: 1, strokeDasharray: '4 4' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)', fontWeight: 'bold' }} />
                           <Area type="monotone" dataKey="volume" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colTraffic)" activeDot={{ r: 8, fill: '#10b981', stroke: '#fff', strokeWidth: 3 }} />
                         </AreaChart>
                       </ResponsiveContainer>
@@ -857,23 +856,23 @@ export default function App({ user }) {
                       <h3 className="text-xl font-bold text-gray-900 tracking-tight">Recent Activity</h3>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-                       {[
-                         { time: '10 mins ago', title: 'Shipment Delivered', desc: 'Order #8922 reached destination.', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                         { time: '1 hr ago', title: 'Low Inventory Alert', desc: 'Lithium batteries below threshold.', icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
-                         { time: '3 hrs ago', title: 'Route Optimized', desc: 'Freight path updated for fuel efficiency.', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50' },
-                         { time: '5 hrs ago', title: 'New Node Sync', desc: 'Warehouse D successfully connected.', icon: Database, color: 'text-purple-500', bg: 'bg-purple-50' },
-                       ].map((log, index) => (
-                         <motion.div key={index} whileHover={{ x: 5 }} className="flex items-start group cursor-pointer p-2 -m-2 rounded-2xl hover:bg-gray-50 transition-all">
-                            <div className={`p-3 rounded-2xl ${log.bg} mr-4 shrink-0 transition-transform group-hover:scale-110`}>
-                               <log.icon className={`w-5 h-5 ${log.color}`} />
-                            </div>
-                            <div>
-                               <p className="text-base font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">{log.title}</p>
-                               <p className="text-sm font-medium text-gray-500 mt-1 leading-snug">{log.desc}</p>
-                               <p className="text-xs font-bold text-gray-400 mt-2 tracking-wider uppercase">{log.time}</p>
-                            </div>
-                         </motion.div>
-                       ))}
+                      {[
+                        { time: '10 mins ago', title: 'Shipment Delivered', desc: 'Order #8922 reached destination.', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                        { time: '1 hr ago', title: 'Low Inventory Alert', desc: 'Lithium batteries below threshold.', icon: AlertTriangle, color: 'text-amber-500', bg: 'bg-amber-50' },
+                        { time: '3 hrs ago', title: 'Route Optimized', desc: 'Freight path updated for fuel efficiency.', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50' },
+                        { time: '5 hrs ago', title: 'New Node Sync', desc: 'Warehouse D successfully connected.', icon: Database, color: 'text-purple-500', bg: 'bg-purple-50' },
+                      ].map((log, index) => (
+                        <motion.div key={index} whileHover={{ x: 5 }} className="flex items-start group cursor-pointer p-2 -m-2 rounded-2xl hover:bg-gray-50 transition-all">
+                          <div className={`p-3 rounded-2xl ${log.bg} mr-4 shrink-0 transition-transform group-hover:scale-110`}>
+                            <log.icon className={`w-5 h-5 ${log.color}`} />
+                          </div>
+                          <div>
+                            <p className="text-base font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">{log.title}</p>
+                            <p className="text-sm font-medium text-gray-500 mt-1 leading-snug">{log.desc}</p>
+                            <p className="text-xs font-bold text-gray-400 mt-2 tracking-wider uppercase">{log.time}</p>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   </motion.div>
                 </div>
@@ -882,7 +881,7 @@ export default function App({ user }) {
 
             {/* INTERACTIVE INVENTORY TAB */}
             {activeTab === 'inventory' && (
-              <motion.div 
+              <motion.div
                 key="inventory"
                 variants={staggerContainer} initial="hidden" animate="show" exit={{ opacity: 0 }}
                 className="max-w-[1600px] mx-auto space-y-8"
@@ -907,11 +906,10 @@ export default function App({ user }) {
                     <motion.button
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       onClick={() => setInventoryCategoryFilter('All')}
-                      className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                        inventoryCategoryFilter === 'All'
+                      className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${inventoryCategoryFilter === 'All'
                           ? 'bg-emerald-600 text-white shadow-md'
                           : 'bg-white text-gray-600 border border-gray-200 hover:border-emerald-300 hover:text-emerald-700'
-                      }`}
+                        }`}
                     >
                       <Layers className="w-4 h-4 inline mr-1.5 -mt-0.5" /> All ({inventoryItems.length})
                     </motion.button>
@@ -923,11 +921,10 @@ export default function App({ user }) {
                           key={cs.category}
                           whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                           onClick={() => setInventoryCategoryFilter(cs.category)}
-                          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                            inventoryCategoryFilter === cs.category
+                          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${inventoryCategoryFilter === cs.category
                               ? `${cfg.activeBg} text-white shadow-md`
                               : `bg-white text-gray-600 border border-gray-200 hover:${cfg.border} hover:${cfg.color}`
-                          }`}
+                            }`}
                         >
                           <CatIcon className="w-4 h-4 inline mr-1.5 -mt-0.5" /> {cs.category} ({cs.count})
                         </motion.button>
@@ -976,12 +973,12 @@ export default function App({ user }) {
                       .map(group => {
                         const cfg = getCategoryConfig(group.category);
                         const CatIcon = cfg.icon;
-                        
+
                         // Filter items by inventory search query
                         const filteredItems = group.items.filter(item => {
                           if (!inventorySearchQuery.trim()) return true;
                           const q = inventorySearchQuery.toLowerCase().trim();
-                          
+
                           // Check for range query (e.g. "100-500")
                           const rangeMatch = q.match(/^(\d+)\s*-\s*(\d+)$/);
                           if (rangeMatch) {
@@ -990,7 +987,7 @@ export default function App({ user }) {
                             const count = Number(item.count || 0);
                             return count >= min && count <= max;
                           }
-                          
+
                           // Text-based search: name, id, location, type, status
                           return (
                             item.name.toLowerCase().includes(q) ||
@@ -1023,7 +1020,7 @@ export default function App({ user }) {
                             {/* Items Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                               {filteredItems.map((item) => (
-                                <motion.div 
+                                <motion.div
                                   key={item.id}
                                   whileHover={{ y: -6, scale: 1.02 }}
                                   onClick={() => setSelectedInventory(item)}
@@ -1037,15 +1034,14 @@ export default function App({ user }) {
                                       <h3 className="text-xl font-bold text-gray-900 leading-tight">{item.name}</h3>
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
-                                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                                        item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
-                                        item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
-                                        'bg-amber-100 text-amber-700'
-                                      }`}>
+                                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
+                                          item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
+                                            'bg-amber-100 text-amber-700'
+                                        }`}>
                                         {item.status}
                                       </span>
                                       <button
-                                        onClick={(e) => { e.stopPropagation(); deleteItem(item.id); if(selectedInventory?.id === item.id) setSelectedInventory(null); }}
+                                        onClick={(e) => { e.stopPropagation(); deleteItem(item.id); if (selectedInventory?.id === item.id) setSelectedInventory(null); }}
                                         className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
@@ -1055,8 +1051,8 @@ export default function App({ user }) {
                                   <div className="relative z-10">
                                     <div className="flex justify-between items-end">
                                       <div>
-                                        <p className="text-xs font-semibold text-gray-400 mb-0.5">ID: {item.id.slice(0,8)}...</p>
-                                        <p className="text-xs font-semibold text-gray-500 flex items-center"><Map className="w-3.5 h-3.5 mr-1"/> {item.location}</p>
+                                        <p className="text-xs font-semibold text-gray-400 mb-0.5">ID: {item.id.slice(0, 8)}...</p>
+                                        <p className="text-xs font-semibold text-gray-500 flex items-center"><Map className="w-3.5 h-3.5 mr-1" /> {item.location}</p>
                                       </div>
                                       <div className="text-right">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block mb-0.5">Quantity</span>
@@ -1097,126 +1093,126 @@ export default function App({ user }) {
                 )}
 
                 <AnimatePresence>
-                   {selectedInventory && (
-                     <motion.div
-                       initial={{ opacity: 0 }}
-                       animate={{ opacity: 1 }}
-                       exit={{ opacity: 0 }}
-                       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-                       onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
-                     >
-                       <motion.div
-                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                         transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-                         className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-10 relative overflow-hidden"
-                         onClick={e => e.stopPropagation()}
-                       >
-                         {/* Decorative background icon */}
-                         <div className="absolute right-[-8%] top-[-10%] opacity-5 pointer-events-none">
-                           <Box className="w-64 h-64 text-emerald-600" />
-                         </div>
+                  {selectedInventory && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                      onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
+                    >
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-10 relative overflow-hidden"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {/* Decorative background icon */}
+                        <div className="absolute right-[-8%] top-[-10%] opacity-5 pointer-events-none">
+                          <Box className="w-64 h-64 text-emerald-600" />
+                        </div>
 
-                         {/* Close button */}
-                         <button
-                           onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
-                           className="absolute top-5 right-5 p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
-                         >
-                           <X className="w-5 h-5" />
-                         </button>
+                        {/* Close button */}
+                        <button
+                          onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
+                          className="absolute top-5 right-5 p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
 
-                         <div className="relative z-10">
-                           <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
-                             <ArrowUpRight className="w-7 h-7 text-emerald-600" />
-                           </div>
-                           <h3 className="text-3xl font-black text-gray-900 mb-2">Deploy {selectedInventory.name}</h3>
-                           <p className="text-gray-500 font-medium text-base mb-2">
-                             📍 {selectedInventory.location}
-                           </p>
-                           <p className="text-gray-600 font-medium text-base mb-8">
-                             Confirm logistics routing for <span className="font-black text-emerald-600">{selectedInventory.count} units</span>. Enter the number of units to deploy.
-                           </p>
-                           <div className="flex flex-col gap-4">
-                             {/* Deploy Row */}
-                             <div className="flex gap-3">
-                               <input
-                                 type="number"
-                                 min="1"
-                                 max={selectedInventory.count}
-                                 placeholder="Qty"
-                                 value={deployAmount}
-                                 onChange={(e) => setDeployAmount(e.target.value)}
-                                 className="w-24 px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-center font-bold text-gray-700"
-                               />
-                               <motion.button
-                                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                 onClick={async () => {
-                                   const amount = Number(deployAmount);
-                                   if (amount > 0 && amount <= selectedInventory.count) {
-                                     const deployed = Math.max(0, selectedInventory.count - amount);
-                                     await deployItem(selectedInventory.id, deployed);
-                                     await addShipment({ itemName: selectedInventory.name, quantity: amount, origin: selectedInventory.location, destination: 'Pending Assignment', transportMode: 'truck', etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() });
-                                     setDeployToast(selectedInventory.name);
-                                     setTimeout(() => setDeployToast(null), 3500);
-                                     setShowShipmentBadge(true);
-                                     setTimeout(() => setShowShipmentBadge(false), 10000);
-                                     setSelectedInventory(null);
-                                     setRestockAmount('');
-                                     setDeployAmount('');
-                                   }
-                                 }}
-                                 disabled={!deployAmount || Number(deployAmount) <= 0 || Number(deployAmount) > selectedInventory.count}
-                                 className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                               >
-                                 <ArrowUpRight className="mr-2 w-5 h-5" /> Deploy
-                               </motion.button>
-                             </div>
-                             
-                             {/* Restock & Cancel Row */}
-                             <div className="flex gap-3">
-                               {selectedInventory.status === 'Low Stock' && (
-                                 <div className="flex-1 flex gap-3">
-                                   <input
-                                     type="number"
-                                     min="1"
-                                     placeholder="Qty"
-                                     value={restockAmount}
-                                     onChange={(e) => setRestockAmount(e.target.value)}
-                                     className="w-24 px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-center font-bold text-gray-700"
-                                   />
-                                   <motion.button
-                                     whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                     onClick={async () => {
-                                       const addAmount = Number(restockAmount);
-                                       if (addAmount > 0) {
-                                         const newCount = Number(selectedInventory.count) + addAmount;
-                                         await restockItem(selectedInventory.id, newCount);
-                                         setSelectedInventory(null);
-                                         setRestockAmount('');
-                                         setDeployAmount('');
-                                       }
-                                     }}
-                                     disabled={!restockAmount || Number(restockAmount) <= 0}
-                                     className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
-                                   >
-                                     <Plus className="mr-2 w-5 h-5" /> Restock
-                                   </motion.button>
-                                 </div>
-                               )}
-                               <motion.button
-                                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                                 onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
-                                 className="px-6 py-4 bg-gray-50 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-100 transition"
-                               >
-                                 Cancel
-                               </motion.button>
-                             </div>
-                           </div>
-                         </div>
-                       </motion.div>
-                     </motion.div>
-                   )}
+                        <div className="relative z-10">
+                          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6">
+                            <ArrowUpRight className="w-7 h-7 text-emerald-600" />
+                          </div>
+                          <h3 className="text-3xl font-black text-gray-900 mb-2">Deploy {selectedInventory.name}</h3>
+                          <p className="text-gray-500 font-medium text-base mb-2">
+                            📍 {selectedInventory.location}
+                          </p>
+                          <p className="text-gray-600 font-medium text-base mb-8">
+                            Confirm logistics routing for <span className="font-black text-emerald-600">{selectedInventory.count} units</span>. Enter the number of units to deploy.
+                          </p>
+                          <div className="flex flex-col gap-4">
+                            {/* Deploy Row */}
+                            <div className="flex gap-3">
+                              <input
+                                type="number"
+                                min="1"
+                                max={selectedInventory.count}
+                                placeholder="Qty"
+                                value={deployAmount}
+                                onChange={(e) => setDeployAmount(e.target.value)}
+                                className="w-24 px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-center font-bold text-gray-700"
+                              />
+                              <motion.button
+                                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                onClick={async () => {
+                                  const amount = Number(deployAmount);
+                                  if (amount > 0 && amount <= selectedInventory.count) {
+                                    const deployed = Math.max(0, selectedInventory.count - amount);
+                                    await deployItem(selectedInventory.id, deployed);
+                                    await addShipment({ itemName: selectedInventory.name, quantity: amount, origin: selectedInventory.location, destination: 'Pending Assignment', transportMode: 'truck', etaDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() });
+                                    setDeployToast(selectedInventory.name);
+                                    setTimeout(() => setDeployToast(null), 3500);
+                                    setShowShipmentBadge(true);
+                                    setTimeout(() => setShowShipmentBadge(false), 10000);
+                                    setSelectedInventory(null);
+                                    setRestockAmount('');
+                                    setDeployAmount('');
+                                  }
+                                }}
+                                disabled={!deployAmount || Number(deployAmount) <= 0 || Number(deployAmount) > selectedInventory.count}
+                                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(16,185,129,0.3)] hover:bg-emerald-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <ArrowUpRight className="mr-2 w-5 h-5" /> Deploy
+                              </motion.button>
+                            </div>
+
+                            {/* Restock & Cancel Row */}
+                            <div className="flex gap-3">
+                              {selectedInventory.status === 'Low Stock' && (
+                                <div className="flex-1 flex gap-3">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="Qty"
+                                    value={restockAmount}
+                                    onChange={(e) => setRestockAmount(e.target.value)}
+                                    className="w-24 px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:outline-none text-center font-bold text-gray-700"
+                                  />
+                                  <motion.button
+                                    whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                    onClick={async () => {
+                                      const addAmount = Number(restockAmount);
+                                      if (addAmount > 0) {
+                                        const newCount = Number(selectedInventory.count) + addAmount;
+                                        await restockItem(selectedInventory.id, newCount);
+                                        setSelectedInventory(null);
+                                        setRestockAmount('');
+                                        setDeployAmount('');
+                                      }
+                                    }}
+                                    disabled={!restockAmount || Number(restockAmount) <= 0}
+                                    className="flex-1 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-[0_8px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+                                  >
+                                    <Plus className="mr-2 w-5 h-5" /> Restock
+                                  </motion.button>
+                                </div>
+                              )}
+                              <motion.button
+                                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                onClick={() => { setSelectedInventory(null); setRestockAmount(''); setDeployAmount(''); }}
+                                className="px-6 py-4 bg-gray-50 border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-100 transition"
+                              >
+                                Cancel
+                              </motion.button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
               </motion.div>
             )}
@@ -1248,7 +1244,7 @@ export default function App({ user }) {
                 <div className="flex flex-col lg:flex-row gap-6 items-start w-full">
 
                   {/* Portrait India Map */}
-                  <motion.div variants={popIn} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden shrink-0 relative z-0 w-full lg:w-1/2" style={{height:'750px'}}>
+                  <motion.div variants={popIn} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden shrink-0 relative z-0 w-full lg:w-1/2" style={{ height: '750px' }}>
                     <MapContainer
                       center={[23, 80]}
                       zoom={4.5}
@@ -1283,17 +1279,17 @@ export default function App({ user }) {
                         if (!coords) coords = [20 + (idx % 4) * 3.5, 73 + (idx % 5) * 4];
                         const icon = L.divIcon({
                           className: '',
-                          html: `<div style="background:#2563eb;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;box-shadow:0 4px 16px rgba(37,99,235,0.5);border:3px solid white">${idx+1}</div>`,
+                          html: `<div style="background:#2563eb;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;box-shadow:0 4px 16px rgba(37,99,235,0.5);border:3px solid white">${idx + 1}</div>`,
                           iconSize: [32, 32],
                           iconAnchor: [16, 16],
                         });
                         return (
                           <Marker key={wh.id} position={coords} icon={icon}>
                             <Popup>
-                              <div style={{fontFamily:'Inter,sans-serif',minWidth:'150px'}}>
-                                <p style={{fontWeight:900,fontSize:'15px',marginBottom:'4px'}}>{wh.name}</p>
-                                <p style={{color:'#6b7280',fontSize:'12px',fontWeight:600}}>{wh.city || wh.region}</p>
-                                <p style={{color:'#2563eb',fontWeight:800,fontSize:'13px',marginTop:'6px'}}>Capacity: {Number(wh.capacity).toLocaleString()} units</p>
+                              <div style={{ fontFamily: 'Inter,sans-serif', minWidth: '150px' }}>
+                                <p style={{ fontWeight: 900, fontSize: '15px', marginBottom: '4px' }}>{wh.name}</p>
+                                <p style={{ color: '#6b7280', fontSize: '12px', fontWeight: 600 }}>{wh.city || wh.region}</p>
+                                <p style={{ color: '#2563eb', fontWeight: 800, fontSize: '13px', marginTop: '6px' }}>Capacity: {Number(wh.capacity).toLocaleString()} units</p>
                               </div>
                             </Popup>
                           </Marker>
@@ -1303,11 +1299,11 @@ export default function App({ user }) {
                   </motion.div>
 
                   {/* Warehouse Cards — scrollable on the right */}
-                  <div className="flex-1 min-w-0" style={{maxHeight:'750px', overflowY:'auto'}}>
+                  <div className="flex-1 min-w-0" style={{ maxHeight: '750px', overflowY: 'auto' }}>
                     {whLoading ? (
                       <div className="flex items-center justify-center py-16"><Loader2 className="w-10 h-10 text-blue-500 animate-spin" /><span className="ml-3 text-gray-500 font-semibold">Syncing...</span></div>
                     ) : warehouses.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-full text-center bg-white rounded-3xl border border-gray-100" style={{minHeight:'300px'}}>
+                      <div className="flex flex-col items-center justify-center h-full text-center bg-white rounded-3xl border border-gray-100" style={{ minHeight: '300px' }}>
                         <Map className="w-16 h-16 text-gray-300 mb-4" />
                         <h3 className="text-xl font-bold text-gray-400">No warehouses yet</h3>
                         <p className="text-gray-400 mt-2 text-sm">Click "Add Warehouse" to pin your first location.</p>
@@ -1318,7 +1314,7 @@ export default function App({ user }) {
                           <motion.div key={wh.id} variants={popIn} whileHover={{ y: -4 }} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-blue-200 transition-all flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">{idx+1}</div>
+                                <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0">{idx + 1}</div>
                                 <div>
                                   <h3 className="text-base font-black text-gray-900 leading-tight">{wh.name}</h3>
                                   <p className="text-xs font-semibold text-gray-500 flex items-center mt-0.5"><Globe className="w-3 h-3 mr-1" />{wh.city || wh.region}</p>
@@ -1369,23 +1365,23 @@ export default function App({ user }) {
                       <form onSubmit={handleAddShipment} className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="col-span-2 md:col-span-1">
                           <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Item Name</label>
-                          <input required value={newShipment.itemName} onChange={e => setNewShipment(p => ({...p, itemName: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Steel Beams" />
+                          <input required value={newShipment.itemName} onChange={e => setNewShipment(p => ({ ...p, itemName: e.target.value }))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Steel Beams" />
                         </div>
                         <div>
                           <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Quantity</label>
-                          <input type="number" value={newShipment.quantity} onChange={e => setNewShipment(p => ({...p, quantity: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. 50" />
+                          <input type="number" value={newShipment.quantity} onChange={e => setNewShipment(p => ({ ...p, quantity: e.target.value }))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. 50" />
                         </div>
                         <div>
                           <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Origin</label>
-                          <input required value={newShipment.origin} onChange={e => setNewShipment(p => ({...p, origin: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Warehouse A" />
+                          <input required value={newShipment.origin} onChange={e => setNewShipment(p => ({ ...p, origin: e.target.value }))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Warehouse A" />
                         </div>
                         <div>
                           <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Destination</label>
-                          <input required value={newShipment.destination} onChange={e => setNewShipment(p => ({...p, destination: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Regional Distributor" />
+                          <input required value={newShipment.destination} onChange={e => setNewShipment(p => ({ ...p, destination: e.target.value }))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" placeholder="e.g. Regional Distributor" />
                         </div>
                         <div>
                           <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Transport Mode</label>
-                          <select value={newShipment.transportMode} onChange={e => setNewShipment(p => ({...p, transportMode: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400">
+                          <select value={newShipment.transportMode} onChange={e => setNewShipment(p => ({ ...p, transportMode: e.target.value }))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400">
                             <option value="truck">🚛 Truck</option>
                             <option value="air">✈️ Air</option>
                             <option value="sea">🚢 Sea</option>
@@ -1394,7 +1390,7 @@ export default function App({ user }) {
                         </div>
                         <div>
                           <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">ETA (days)</label>
-                          <input type="number" min="1" value={newShipment.etaDays} onChange={e => setNewShipment(p => ({...p, etaDays: e.target.value}))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" />
+                          <input type="number" min="1" value={newShipment.etaDays} onChange={e => setNewShipment(p => ({ ...p, etaDays: e.target.value }))} className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-400" />
                         </div>
                         <div className="col-span-2 md:col-span-3 flex gap-3">
                           <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">Create Shipment</button>
@@ -1442,7 +1438,7 @@ export default function App({ user }) {
                               <div className="flex justify-between items-start mb-2">
                                 <h4 className="font-black text-gray-900">{s.itemName}</h4>
                                 <div className="flex flex-col items-end gap-1">
-                                   <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-1.5">
                                     <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">QTY: {s.quantity}</span>
                                     <button onClick={() => deleteShipment(s.id)} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg transition-colors border border-red-100"><Trash2 className="w-4 h-4" /></button>
                                   </div>
@@ -1526,15 +1522,15 @@ export default function App({ user }) {
                         <AreaChart data={carbonData.monthlyTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                           <defs>
                             <linearGradient id="colCarbon" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
-                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                          <XAxis dataKey="month" stroke="#9ca3af" axisLine={false} tickLine={false} dy={10} tick={{fontFamily:'Inter', fontWeight:600}} />
-                          <YAxis stroke="#9ca3af" axisLine={false} tickLine={false} tick={{fontFamily:'Inter', fontWeight:600}} />
-                          <Tooltip contentStyle={{ borderRadius:'12px', border:'none', boxShadow:'0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight:'bold' }} />
-                          <Area type="monotone" dataKey="co2" name="CO₂ (tonnes)" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colCarbon)" activeDot={{ r:7, fill:'#10b981', stroke:'#fff', strokeWidth:3 }} />
+                          <XAxis dataKey="month" stroke="#9ca3af" axisLine={false} tickLine={false} dy={10} tick={{ fontFamily: 'Inter', fontWeight: 600 }} />
+                          <YAxis stroke="#9ca3af" axisLine={false} tickLine={false} tick={{ fontFamily: 'Inter', fontWeight: 600 }} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
+                          <Area type="monotone" dataKey="co2" name="CO₂ (tonnes)" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colCarbon)" activeDot={{ r: 7, fill: '#10b981', stroke: '#fff', strokeWidth: 3 }} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
@@ -1707,11 +1703,10 @@ export default function App({ user }) {
                               <td className="px-4 py-3 font-bold text-gray-800 text-right">{Number(item.count).toLocaleString()}</td>
                               <td className="px-4 py-3 font-bold text-gray-800 text-right">{Number(item.sales || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-center">
-                                <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold ${
-                                  item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
-                                  item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
-                                  'bg-amber-100 text-amber-700'
-                                }`}>{item.status}</span>
+                                <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-bold ${item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
+                                    item.status === 'Low Stock' ? 'bg-red-100 text-red-700' :
+                                      'bg-amber-100 text-amber-700'
+                                  }`}>{item.status}</span>
                               </td>
                             </tr>
                           ))}
@@ -1784,15 +1779,15 @@ export default function App({ user }) {
             </motion.div>
           )}
         </AnimatePresence>
-        <motion.button 
-          whileHover={{ scale: 1.1 }} 
-          whileTap={{ scale: 0.9 }} 
-          onClick={() => setIsChatOpen(!isChatOpen)} 
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsChatOpen(!isChatOpen)}
           className={`w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-all duration-300 relative ${isChatOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}
         >
           {/* Pulsing ring */}
           {!isChatOpen && (
-            <motion.span 
+            <motion.span
               className="absolute inset-0 rounded-full bg-emerald-400 opacity-20"
               animate={{ scale: [1, 1.4, 1], opacity: [0.2, 0, 0.2] }}
               transition={{ duration: 2, repeat: Infinity }}
