@@ -8,6 +8,7 @@ import {
   TrendingUp, AlertTriangle, Lightbulb, Activity, Globe, MessageSquare, 
   DollarSign, ShoppingCart, Zap, Package, Sparkles, RefreshCw
 } from 'lucide-react';
+import { auth } from './firebase';
 
 const PRODUCT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -64,9 +65,13 @@ export default function DataAnalyzer({ items }) {
     setIsLoading(true);
     setError(null);
     try {
+      const token = await auth.currentUser?.getIdToken();
       const response = await fetch(`${API_URL}/api/ai-analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ items })
       });
       

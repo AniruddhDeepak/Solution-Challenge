@@ -2,12 +2,31 @@ import os
 import json
 import asyncio
 from typing import List, Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import auth as firebase_auth, credentials
 
 load_dotenv()
+
+# Initialize Firebase Admin
+# In Google Cloud Run, it will automatically use the environment's project ID
+if not firebase_admin._apps:
+    firebase_admin.initialize_app()
+
+async def verify_token(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid token")
+    
+    token = authorization.split("Bearer ")[1]
+    try:
+        # Verify the Firebase ID token
+        decoded_token = firebase_auth.verify_id_token(token)
+        return decoded_token
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 # Configure Gemini
 api_key = os.getenv("GEMINI_API_KEY")
@@ -177,7 +196,7 @@ def read_root():
 
 
 @app.post("/api/ai-analyze")
-async def analyze_inventory(request: AnalysisRequest):
+async def analyze_inventory(request: AnalysisRequest, user: dict = Depends(verify_token)):
     inventory_data = [item.model_dump() for item in request.items]
 
     # Try Gemini AI first
@@ -304,7 +323,7 @@ def compute_chat_fallback(message: str, items: list) -> str:
 
 
 @app.post("/api/chat")
-async def chat_assistant(request: ChatRequest):
+async def chat_assistant(request: ChatRequest, user: dict = Depends(verify_token)):
     inventory_data = [item.model_dump() for item in request.inventory_data]
 
     if client:

@@ -252,9 +252,13 @@ export default function App({ user }) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         signal: controller.signal,
         body: JSON.stringify({
           message: query,
@@ -292,9 +296,13 @@ export default function App({ user }) {
       // Try the FastAPI backend first (AI-powered when running)
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const token = await auth.currentUser?.getIdToken();
       const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         signal: controller.signal,
         body: JSON.stringify({
           message: userMsg,
