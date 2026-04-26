@@ -11,7 +11,7 @@ import {
 import { auth } from './firebase';
 
 const PRODUCT_TYPES = ['Electronics', 'Raw Materials', 'Consumables', 'Hardware', 'Automotive', 'Other'];
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = 'https://chainhandler-api-558261279032.us-central1.run.app';
 
 // Deterministic random number generator based on string
 const hashString = (str) => {

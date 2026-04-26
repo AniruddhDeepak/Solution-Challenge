@@ -24,7 +24,7 @@ import {
 } from 'recharts';
 
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_URL = import.meta.env.VITE_API_URL || (isLocalhost ? 'http://localhost:8000' : '');
+const API_URL = 'https://chainhandler-api-558261279032.us-central1.run.app';
 
 if (!API_URL && !isLocalhost) {
   console.warn("ChainHandler: VITE_API_URL is not set in production. AI features will use local fallback.");
