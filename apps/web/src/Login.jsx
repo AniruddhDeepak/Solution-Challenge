@@ -8,6 +8,7 @@ import { Box, Truck, Globe, BarChart3, ArrowRight, Package, Zap, Shield, Activit
 function GridBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Original Dot Grid */}
       <div
         style={{
           backgroundImage: 'radial-gradient(circle, rgba(52,211,153,0.15) 1px, transparent 1px)',
@@ -15,12 +16,36 @@ function GridBackground() {
         }}
         className="absolute inset-0 opacity-60"
       />
-      {/* Animated scan line */}
+      {/* Original Scan Line */}
       <motion.div
         className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent"
         animate={{ top: ['0%', '100%', '0%'] }}
         transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
       />
+      {/* Premium Floating Watermarks */}
+      <div className="absolute inset-0 opacity-[0.05]">
+        {[
+          { Icon: Truck, size: 100, x: "10%", y: "20%" },
+          { Icon: Box, size: 70, x: "80%", y: "15%" },
+          { Icon: Globe, size: 140, x: "70%", y: "70%" },
+          { Icon: Package, size: 90, x: "15%", y: "85%" },
+          { Icon: Activity, size: 80, x: "40%", y: "40%" }
+        ].map((item, i) => (
+          <motion.div
+            key={i}
+            className="absolute text-white"
+            initial={{ x: item.x, y: item.y, rotate: 0 }}
+            animate={{ 
+              x: [item.x, `${parseInt(item.x) + 2}%`, item.x],
+              y: [item.y, `${parseInt(item.y) + 2}%`, item.y],
+              rotate: [0, 5, 0] 
+            }}
+            transition={{ duration: 30 + i * 5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <item.Icon size={item.size} strokeWidth={0.5} />
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -36,19 +61,19 @@ function OrbitBadge({ icon: Icon, label, angle, radius = 200, delay = 0 }) {
         y: Math.sin((angle * Math.PI) / 180) * radius - 22,
       }}
       initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ 
-        opacity: 1, 
-        scale: 1, 
+      animate={{
+        opacity: 1,
+        scale: 1,
         y: [
-          Math.sin((angle * Math.PI) / 180) * radius - 22 - 8, 
-          Math.sin((angle * Math.PI) / 180) * radius - 22 + 8, 
+          Math.sin((angle * Math.PI) / 180) * radius - 22 - 8,
+          Math.sin((angle * Math.PI) / 180) * radius - 22 + 8,
           Math.sin((angle * Math.PI) / 180) * radius - 22 - 8
-        ] 
+        ]
       }}
-      transition={{ 
-        opacity: { duration: 0.5, delay }, 
-        scale: { duration: 0.5, delay }, 
-        y: { duration: 3 + delay, repeat: Infinity, ease: 'easeInOut' } 
+      transition={{
+        opacity: { duration: 0.5, delay },
+        scale: { duration: 0.5, delay },
+        y: { duration: 3 + delay, repeat: Infinity, ease: 'easeInOut' }
       }}
     >
       <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-lg">
@@ -83,7 +108,7 @@ export default function Login() {
       } else {
         provider.setCustomParameters({ prompt: 'select_account' });
       }
-      
+
       await setPersistence(auth, stayLoggedIn ? browserLocalPersistence : browserSessionPersistence);
       await signInWithPopup(auth, provider);
     } catch (error) {
@@ -94,16 +119,16 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-white flex overflow-hidden font-sans">
-      
+
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex w-1/2 bg-gradient-to-b from-emerald-600 to-emerald-800 text-white flex-col justify-between p-16 relative overflow-hidden">
         {/* Animated dot grid */}
         <GridBackground />
-        
+
         {/* Background decorations */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-5 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-black opacity-10 rounded-full blur-[60px]"></div>
-        
+
         {/* Animated shimmer bar at top */}
         <motion.div
           className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-300/70 to-transparent"
@@ -155,10 +180,10 @@ export default function Login() {
         {/* Feature highlights */}
         <div className="relative z-10 grid grid-cols-2 gap-4">
           {[
-            { icon: Truck,    label: 'Live Shipment Tracking', sub: 'Real-time Kanban board' },
-            { icon: Globe,    label: 'Global Warehouses',      sub: 'Multi-node management' },
-            { icon: BarChart3,label: 'Gemini AI Analytics',    sub: 'Demand forecasting' },
-            { icon: Box,      label: 'Carbon Tracker',         sub: 'SDG 13 emissions monitor' },
+            { icon: Truck, label: 'Live Shipment Tracking', sub: 'Real-time Kanban board' },
+            { icon: Globe, label: 'Global Warehouses', sub: 'Multi-node management' },
+            { icon: BarChart3, label: 'Gemini AI Analytics', sub: 'Demand forecasting' },
+            { icon: Box, label: 'Carbon Tracker', sub: 'SDG 13 emissions monitor' },
           ].map((f, i) => (
             <motion.div
               key={i}
@@ -195,7 +220,7 @@ export default function Login() {
           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-emerald-400 blur-[120px] pointer-events-none"
         />
-        
+
         {isAuthenticating ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -203,25 +228,25 @@ export default function Login() {
             className="flex flex-col items-center text-center max-w-sm"
           >
             <div className="relative w-32 h-32 mb-8">
-              <motion.div 
-                animate={{ rotate: 360 }} 
+              <motion.div
+                animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
                 className="absolute inset-0 rounded-full border-2 border-dashed border-emerald-200"
               />
-              <motion.div 
-                animate={{ rotate: -360 }} 
+              <motion.div
+                animate={{ rotate: -360 }}
                 transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
                 className="absolute inset-2 rounded-full border-[3px] border-emerald-500 border-t-transparent"
               />
-              <motion.div 
-                animate={{ scale: [0.9, 1.1, 0.9] }} 
+              <motion.div
+                animate={{ scale: [0.9, 1.1, 0.9] }}
                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                 className="absolute inset-0 flex items-center justify-center bg-emerald-50 rounded-full m-6 shadow-inner"
               >
                 <Box className="w-8 h-8 text-emerald-600" />
               </motion.div>
             </div>
-            
+
             <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Authenticating</h2>
             <p className="text-gray-500 font-medium leading-relaxed">
               Establishing secure connection to your supply chain network...
@@ -254,7 +279,7 @@ export default function Login() {
                   className="w-full flex items-center p-4 bg-white border border-gray-200 rounded-2xl hover:border-emerald-200 transition-all text-left relative overflow-hidden group shadow-sm"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100 translate-x-[-100%] group-hover:translate-x-[100%] transition-all duration-1000"></div>
-                  
+
                   <img src={savedUser.photoURL} alt="" className="w-12 h-12 rounded-full mr-4 shadow-sm" />
                   <div className="flex-1 relative z-10">
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Welcome back</p>
@@ -278,10 +303,10 @@ export default function Login() {
                 className="w-full flex items-center justify-center px-6 py-4 bg-white border-2 border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-emerald-300 transition-all group"
               >
                 <svg className="w-6 h-6 mr-3 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
                 <span className="text-base font-bold text-gray-700 group-hover:text-emerald-700 transition-colors">Continue with Google</span>
               </motion.button>
@@ -290,9 +315,9 @@ export default function Login() {
             <div className="mt-6 flex items-center justify-center">
               <label className="flex items-center cursor-pointer group">
                 <div className="relative">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only" 
+                  <input
+                    type="checkbox"
+                    className="sr-only"
                     checked={stayLoggedIn}
                     onChange={(e) => setStayLoggedIn(e.target.checked)}
                   />
@@ -304,7 +329,7 @@ export default function Login() {
             </div>
 
             <div className="mt-8 p-5 bg-gray-50 rounded-2xl border border-gray-100 relative overflow-hidden">
-              <motion.div 
+              <motion.div
                 className="absolute top-0 left-0 w-1 h-full bg-emerald-500"
                 animate={{ height: ['0%', '100%', '0%'] }}
                 transition={{ duration: 4, repeat: Infinity }}
@@ -314,7 +339,7 @@ export default function Login() {
                 Only authorised users can access supply chain data.
               </p>
             </div>
-            
+
             <p className="text-center text-xs text-gray-400 mt-8 font-medium">
               ChainHandler © 2026 · Supply Chain Intelligence Platform
             </p>

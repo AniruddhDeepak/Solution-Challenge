@@ -200,7 +200,7 @@ export default function DataAnalyzer({ items }) {
       )}
 
       {/* 2. Market Intelligence Feed */}
-      <motion.div variants={popIn} className="relative overflow-hidden bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+      <motion.div variants={popIn} className="relative overflow-hidden bg-white p-8 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] transition-all">
         {/* Subtle mesh background */}
         <div className="absolute inset-0 pointer-events-none opacity-20" 
              style={{ backgroundImage: 'radial-gradient(circle, #818cf8 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' }} />
@@ -237,7 +237,7 @@ export default function DataAnalyzer({ items }) {
             <motion.div 
               key={item.id || idx} 
               whileHover={{ y: -5, scale: 1.02 }}
-              className={`p-5 rounded-2xl border border-gray-50 bg-gray-50 group cursor-default relative overflow-hidden transition-all hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5 ${!aiData ? 'animate-pulse' : ''}`}
+              className={`p-6 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] bg-gray-50 group cursor-default relative overflow-hidden transition-all hover:bg-white ${!aiData ? 'animate-pulse' : ''}`}
             >
               {/* Shimmer on hover */}
               <motion.div
@@ -246,14 +246,14 @@ export default function DataAnalyzer({ items }) {
                 whileHover={{ x: '100%' }}
                 transition={{ duration: 0.8 }}
               />
-              <div className={`w-10 h-10 rounded-xl ${item.bg || 'bg-gray-100'} flex items-center justify-center mb-4 transition-transform group-hover:scale-110`}>
-                {item.icon ? <item.icon className={`w-5 h-5 ${item.color}`} /> : <Activity className="w-5 h-5 text-gray-300" />}
+              <div className={`w-12 h-12 rounded-2xl ${item.bg || 'bg-gray-100'} border border-gray-200 flex items-center justify-center mb-5 transition-transform group-hover:scale-110 shadow-sm`}>
+                {item.icon ? <item.icon className={`w-6 h-6 ${item.color}`} /> : <Activity className="w-6 h-6 text-gray-300" />}
               </div>
-              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">{item.title || 'Loading...'}</h4>
-              <p className={`text-xl font-black mb-3 ${item.color || 'text-gray-400'}`}>
+              <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">{item.title || 'Loading...'}</h4>
+              <p className={`text-4xl font-black mb-3 ${item.color || 'text-gray-400'}`}>
                 {aiData ? <CounterValue value={item.value} /> : '---'}
               </p>
-              <p className="text-sm text-gray-600 font-medium leading-relaxed">{item.desc || 'Waiting for AI processing...'}</p>
+              <p className="text-sm text-gray-600 font-bold leading-relaxed">{item.desc || 'Waiting for AI processing...'}</p>
             </motion.div>
           ))}
         </div>
@@ -261,11 +261,11 @@ export default function DataAnalyzer({ items }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* 3. Trend Analysis Chart */}
-        <motion.div variants={popIn} className="lg:col-span-2 bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)]">
+        <motion.div variants={popIn} className="lg:col-span-2 bg-white p-8 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all">
           <div className="flex justify-between items-center mb-8">
              <div>
-               <h3 className="text-xl font-bold text-gray-900 tracking-tight">Category Trend Analysis</h3>
-               <p className="text-sm text-gray-500 mt-1 font-medium">Monthly Sales Velocity vs Current Inventory Stock.</p>
+               <h3 className="text-2xl font-black text-gray-900 tracking-tight">Category Trend Analysis</h3>
+               <p className="text-sm text-gray-500 mt-1 font-bold">Monthly Sales Velocity vs Current Inventory Stock.</p>
              </div>
           </div>
           <div className="h-80 w-full">
@@ -285,21 +285,21 @@ export default function DataAnalyzer({ items }) {
         </motion.div>
 
         {/* 4. Actionable Suggestions */}
-        <motion.div variants={popIn} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] flex flex-col h-full">
-          <div className="flex items-center mb-6">
-            <Zap className="w-6 h-6 text-amber-500 mr-3" />
-            <h3 className="text-xl font-bold text-gray-900 tracking-tight">Actionable Insights</h3>
+        <motion.div variants={popIn} className="bg-white p-8 rounded-3xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] hover:shadow-[6px_6px_0px_0px_rgba(17,24,39,0.15)] transition-all flex flex-col h-full">
+          <div className="flex items-center mb-8">
+            <Zap className="w-7 h-7 text-amber-500 mr-3" />
+            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Actionable Insights</h3>
           </div>
           <div className="flex-1 overflow-y-auto space-y-4 pr-2">
             
             {/* High Demand Insight */}
             {insights?.topSeller && (
-              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-start">
-                <TrendingUp className="w-5 h-5 text-emerald-600 mr-3 shrink-0 mt-0.5" />
+              <div className="p-5 bg-emerald-50 rounded-2xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] flex items-start">
+                <TrendingUp className="w-6 h-6 text-emerald-600 mr-3 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-bold text-emerald-900">Surging Demand</h4>
-                  <p className="text-xs text-emerald-700 mt-1 font-medium">
-                    <span className="font-bold">{insights.topSeller.name}</span> is moving extremely fast ({insights.topSeller.sales}/mo). 
+                  <h4 className="text-base font-black text-emerald-900">Surging Demand</h4>
+                  <p className="text-sm text-emerald-800 mt-1 font-bold">
+                    <span className="font-black text-emerald-900">{insights.topSeller.name}</span> is moving extremely fast ({insights.topSeller.sales}/mo). 
                     Ensure fulfillment nodes prioritize this item.
                   </p>
                 </div>
@@ -308,11 +308,11 @@ export default function DataAnalyzer({ items }) {
 
             {/* Restock Alerts */}
             {insights?.restockItems.length > 0 && (
-              <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 flex items-start">
-                <AlertTriangle className="w-5 h-5 text-rose-600 mr-3 shrink-0 mt-0.5" />
+              <div className="p-5 bg-rose-50 rounded-2xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] flex items-start">
+                <AlertTriangle className="w-6 h-6 text-rose-600 mr-3 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-bold text-rose-900">Restock Required Soon</h4>
-                  <p className="text-xs text-rose-700 mt-1 font-medium">
+                  <h4 className="text-base font-black text-rose-900">Restock Required Soon</h4>
+                  <p className="text-sm text-rose-800 mt-1 font-bold">
                     The following items have sales outpacing inventory:
                   </p>
                   <ul className="mt-2 space-y-1">
@@ -329,11 +329,11 @@ export default function DataAnalyzer({ items }) {
 
             {/* Efficiency Improvements */}
             {insights?.overstockedItems?.length > 0 && (
-              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start">
-                <Lightbulb className="w-5 h-5 text-blue-600 mr-3 shrink-0 mt-0.5" />
+              <div className="p-5 bg-blue-50 rounded-2xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] flex items-start">
+                <Lightbulb className="w-6 h-6 text-blue-600 mr-3 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-bold text-blue-900">Capital Efficiency</h4>
-                  <p className="text-xs text-blue-700 mt-1 font-medium">
+                  <h4 className="text-base font-black text-blue-900">Capital Efficiency</h4>
+                  <p className="text-sm text-blue-800 mt-1 font-bold">
                     AI suggestions for inventory optimization:
                   </p>
                   <ul className="mt-2 space-y-1">
@@ -352,9 +352,9 @@ export default function DataAnalyzer({ items }) {
             )}
 
             {(!insights?.restockItems.length && !insights?.overstockedItems.length) && (
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
-                <Package className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm font-bold text-gray-500">Supply Chain is Perfectly Balanced</p>
+              <div className="p-6 bg-gray-50 rounded-2xl border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(17,24,39,0.1)] text-center">
+                <Package className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                <p className="text-base font-black text-gray-700">Supply Chain is Perfectly Balanced</p>
               </div>
             )}
 
