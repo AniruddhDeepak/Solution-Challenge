@@ -67,6 +67,8 @@ export default function Login() {
   }, []);
 
   const handleGoogleSignIn = async (emailHint = null) => {
+    const isHosted = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    
     setIsAuthenticating(true);
     setError(null);
     try {
@@ -76,8 +78,12 @@ export default function Login() {
         provider.setCustomParameters({ prompt: 'select_account' });
       }
       
-      // Trigger popup immediately to avoid browser blocking
-      await signInWithPopup(auth, provider);
+      // Use Redirect for the live site to avoid mobile/browser popup blockers
+      if (isHosted) {
+        await signInWithRedirect(auth, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
     } catch (error) {
       console.error('Sign-in error:', error);
       setError(error.message);
