@@ -175,7 +175,7 @@ export default function Login() {
 
       {/* Right Panel - Sign In */}
       <div className="flex-1 flex items-center justify-center p-12 relative bg-gray-50">
-        <div className="absolute inset-0 bg-[radial-gradient(#10b981_0.5px,transparent_0.5px)] [background-size:24px_24px] opacity-[0.03]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(#10b981_0.5px,transparent_0.5px)] [background-size:24px_24px] opacity-[0.03] pointer-events-none"></div>
 
         <AnimatePresence mode="wait">
           {isAuthenticating ? (
