@@ -57,7 +57,9 @@ const Counter = ({ value, suffix = "" }) => {
 };
 
 export default function App({ user }) {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('inventory');
+  // Initialize showLanding based on whether a user session exists
+  const [showLanding, setShowLanding] = useState(!user);
   const [healthStatus, setHealthStatus] = useState('Checking...');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInventory, setSelectedInventory] = useState(null);
@@ -76,12 +78,34 @@ export default function App({ user }) {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isAiSearching, setIsAiSearching] = useState(false);
   const [aiSearchResult, setAiSearchResult] = useState(null);
+  const [error, setError] = useState(null);
   const notificationsRef = useRef(null);
   const searchRef = useRef(null);
 
   const { items: inventoryItems, loading: inventoryLoading, addItem, deployItem, restockItem, deleteItem } = useInventory();
   const { warehouses, loading: whLoading, addWarehouse, deleteWarehouse } = useWarehouses();
   const { shipments, loading: shipLoading, addShipment, updateShipmentStatus, deleteShipment } = useShipments();
+
+  // Handle redirect result if any
+  const checkRedirect = async () => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result) {
+        // Successfully returned from redirect
+        console.log('Redirect sign-in success');
+      }
+    } catch (error) {
+      console.error('Redirect sign-in error:', error);
+      // Only show error if it's not a common "cancelled" error
+      if (error.code !== 'auth/redirect-cancelled-by-user') {
+        setError(error.message);
+      }
+    }
+  };
+
+  useEffect(() => {
+    checkRedirect();
+  }, []);
 
   // Close notifications and search dropdown when clicking outside
   useEffect(() => {
