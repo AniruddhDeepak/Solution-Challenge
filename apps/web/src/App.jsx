@@ -57,7 +57,7 @@ const Counter = ({ value, suffix = "" }) => {
 };
 
 export default function App({ user }) {
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setActiveTab] = useState('dashboard');
   // Initialize showLanding based on whether a user session exists
   const [showLanding, setShowLanding] = useState(!user);
   const [healthStatus, setHealthStatus] = useState('Checking...');
